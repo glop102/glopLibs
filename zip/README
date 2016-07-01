@@ -1,0 +1,4 @@
+ZIP FILE LIBRARY
+
+Currently only writes the most basic of zip files
+Is supposed to be a simple way to wrap up files, not real archival
