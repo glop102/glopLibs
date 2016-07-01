@@ -338,7 +338,7 @@ void ZipFile::saveFile(FILE* fff){
 	writeEndOfcentralDirectory(fff,files);
 }
 void ZipFile::saveFile(unsigned int fd){
-	FILE* fff=fdopen(fd);
+	FILE* fff=fdopen(fd,"w");
 	if(fff==NULL) return; // error
 
 	saveFile(fff);
