@@ -28,6 +28,8 @@ public:
 	ZipFile readFile(std::string filename);
 
 	void saveFile(std::string filename);
+	void saveFile(FILE* fff);
+	void saveFile(unsigned int fd);
 };
 
 ZipFile::ZipFile(){
@@ -319,8 +321,12 @@ void writeEndOfcentralDirectory(FILE* fff,std::vector<ZipEntry> &files){
 void ZipFile::saveFile(std::string filename){
 	FILE* fff=fopen(filename.c_str(),"wb");
 	if(fff==NULL) return; // error
-	printf("Saving\n");
 
+	saveFile(fff);
+
+	fclose(fff);
+}
+void ZipFile::saveFile(FILE* fff){
 	offsetFromBeginning=0; //reset to start counting again
 
 	for(int x=0; x<files.size(); x++){
@@ -330,8 +336,15 @@ void ZipFile::saveFile(std::string filename){
 
 	writeCentralDirectory(fff,files);
 	writeEndOfcentralDirectory(fff,files);
+}
+void ZipFile::saveFile(unsigned int fd){
+	FILE* fff=fdopen(fd);
+	if(fff==NULL) return; // error
 
-	fclose(fff);
+	saveFile(fff);
+
+	//WARNING: DO NOT fclose()
+	//the pointer will be closed when a call to close() is done
 }
 
 #endif
