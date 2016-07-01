@@ -1,5 +1,8 @@
 all: cli
 	#Compiled cli
 
-cli:
-	g++ cliTest.cpp -o cli.out
+cli: library
+	g++ cliTest.cpp zipFile.o -o cli.out
+
+library:
+	g++ -c zipFile.cpp -o zipFile.o
