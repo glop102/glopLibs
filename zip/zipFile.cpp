@@ -3,6 +3,10 @@
 
 #include "zipFile.h"
 
+unsigned long crc_table[256]; //Table of CRCs of all 8-bit messages
+int crc_table_computed = 0; //Flag: has the table been computed? Initially false
+uint32_t crc_code(ZipEntry& entry); //gives back the crc of the file
+
 ZipFile::ZipFile(){
 	//vector of files starts empty
 }
@@ -20,6 +24,7 @@ void ZipFile::addFile(std::string filename, char* data, unsigned int size){
 	entry.dataSize=size;
 	memcpy(entry.data,data,size);
 	entry.loaded=true;
+	entry.crc=crc_code(entry);
 
 	files.push_back(entry);
 }
@@ -43,7 +48,9 @@ void ZipFile::addFile(std::string filename){
 	entry.loaded=true;
 	//entry data
 	//entry data size
-	entry.crc=0;
+	entry.crc=crc_code(entry);
+	printf("%s\n",entry.filename.c_str());
+	printf("\tCRC CODE : %X\n",entry.crc);
 
 	files.push_back(entry);
 }
@@ -101,10 +108,10 @@ void writeHeader(FILE* fff, ZipEntry &entry){
 	fwrite(temp,2,1,fff);
 
 	//CRC32 code
-	temp[0]=0;
-	temp[1]=0;
-	temp[2]=0;
-	temp[3]=0;
+	temp[0]= (entry.crc>>(8*0)) & 255;
+	temp[1]= (entry.crc>>(8*1)) & 255;
+	temp[2]= (entry.crc>>(8*2)) & 255;
+	temp[3]= (entry.crc>>(8*3)) & 255;
 	fwrite(temp,4,1,fff);
 
 	//compressed size
@@ -179,10 +186,10 @@ void writeCentralDirectory(FILE* fff, std::vector<ZipEntry> &files){
 		temp[1]=0;
 		fwrite(temp,2,1,fff);
 		//CRC32
-		temp[0]=0;
-		temp[1]=0;
-		temp[2]=0;
-		temp[3]=0;
+		temp[0]= (entry.crc>>(8*0)) & 255;
+		temp[1]= (entry.crc>>(8*1)) & 255;
+		temp[2]= (entry.crc>>(8*2)) & 255;
+		temp[3]= (entry.crc>>(8*3)) & 255;
 		fwrite(temp,4,1,fff);
 
 		//compressed size
@@ -357,10 +364,10 @@ void writeHeader_socket(unsigned int fd, ZipEntry &entry){
 	write(fd,temp,2);
 
 	//CRC32 code
-	temp[0]=0;
-	temp[1]=0;
-	temp[2]=0;
-	temp[3]=0;
+	temp[0]= (entry.crc>>(8*0)) & 255;
+	temp[1]= (entry.crc>>(8*1)) & 255;
+	temp[2]= (entry.crc>>(8*2)) & 255;
+	temp[3]= (entry.crc>>(8*3)) & 255;
 	write(fd,temp,4);
 
 	//compressed size
@@ -435,10 +442,10 @@ void writeCentralDirectory_socket(unsigned int fd, std::vector<ZipEntry> &files)
 		temp[1]=0;
 		write(fd,temp,2);
 		//CRC32
-		temp[0]=0;
-		temp[1]=0;
-		temp[2]=0;
-		temp[3]=0;
+		temp[0]= (entry.crc>>(8*0)) & 255;
+		temp[1]= (entry.crc>>(8*1)) & 255;
+		temp[2]= (entry.crc>>(8*2)) & 255;
+		temp[3]= (entry.crc>>(8*3)) & 255;
 		write(fd,temp,4);
 
 		//compressed size
@@ -558,6 +565,52 @@ void ZipFile::saveFile(unsigned int fd){
 
 	//WARNING: DO NOT close()
 	//the pointer will be closed when a call to close() is done
+}
+
+/* Make the table for a fast CRC. */
+void make_crc_table(void) {
+	unsigned long c;
+	int n, k;
+
+	for (n = 0; n < 256; n++) {
+		c = (unsigned long) n;
+		for (k = 0; k < 8; k++) {
+			if (c & 1)
+				c = 0xedb88320L ^ (c >> 1);
+				//c = 0xdebb20e3 ^ (c >> 1);
+			else
+				c = c >> 1;
+		}
+		crc_table[n] = c;
+	}
+	crc_table_computed = 1;
+}
+
+
+/* Update a running CRC with the bytes buf[0..len-1]--the CRC
+  should be initialized to all 1's, and the transmitted value
+  is the 1's complement of the final running CRC (see the
+  crc() routine below). */
+
+uint32_t update_crc(uint32_t crc, unsigned char *buf, unsigned int len) {
+	unsigned long c = crc;
+	int n;
+
+	if (!crc_table_computed)
+		make_crc_table();
+	for (n = 0; n < len; n++) {
+		c = crc_table[(c ^ buf[n]) & 0xff] ^ (c >> 8);
+	}
+	return c;
+}
+
+uint32_t crc_code(ZipEntry &entry){
+	if(!crc_table_computed) make_crc_table();
+
+	uint32_t crcCode;
+	crcCode = update_crc(0xffffffffL,entry.data,entry.dataSize);
+	crcCode ^= 0xffffffffL;
+	return crcCode;
 }
 
 #endif
