@@ -7,6 +7,7 @@
 #include <string.h>
 #include <vector>
 #include <stdio.h>
+#include <unistd.h>
 
 struct ZipEntry{
 	std::string filename;

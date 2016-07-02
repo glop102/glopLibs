@@ -308,13 +308,255 @@ void ZipFile::saveFile(FILE* fff){
 	writeCentralDirectory(fff,files);
 	writeEndOfcentralDirectory(fff,files);
 }
+
+//====================================================================================================
+void writeHeader_socket(unsigned int fd, ZipEntry &entry){
+	entry.headerOffset=offsetFromBeginning; // keep track of where the
+	offsetFromBeginning+=30;
+	offsetFromBeginning+=entry.filename.length();
+	offsetFromBeginning+=entry.dataSize;
+
+	// magic number for the block
+	uint8_t temp[4] = {0x50,0x4b,0x03,0x04};
+	write(fd,temp,4);
+
+	//minimum version needed to extract
+	temp[0]=0;
+	temp[1]=0;
+	temp[2]=0;
+	temp[3]=0;
+	write(fd,temp,2);
+
+	//General purpose flags
+	temp[0]=0;
+	temp[1]=0;
+	temp[2]=0;
+	temp[3]=0;
+	write(fd,temp,2);
+
+	//compression method
+    // no compression
+	temp[0]=0;
+	temp[1]=0;
+	temp[2]=0;
+	temp[3]=0;
+	write(fd,temp,2);
+
+	//modification time
+	temp[0]=0;
+	temp[1]=0;
+	temp[2]=0;
+	temp[3]=0;
+	write(fd,temp,2);
+
+	//modification date
+	temp[0]=0;
+	temp[1]=0;
+	temp[2]=0;
+	temp[3]=0;
+	write(fd,temp,2);
+
+	//CRC32 code
+	temp[0]=0;
+	temp[1]=0;
+	temp[2]=0;
+	temp[3]=0;
+	write(fd,temp,4);
+
+	//compressed size
+	//same size since we did not compress at all
+	temp[0]= (entry.dataSize>>(8*0)) & 255;
+	temp[1]= (entry.dataSize>>(8*1)) & 255;
+	temp[2]= (entry.dataSize>>(8*2)) & 255;
+	temp[3]= (entry.dataSize>>(8*3)) & 255;
+	write(fd,temp,4);
+
+	//uncompressed size
+	temp[0]= (entry.dataSize>>(8*0)) & 255;
+	temp[1]= (entry.dataSize>>(8*1)) & 255;
+	temp[2]= (entry.dataSize>>(8*2)) & 255;
+	temp[3]= (entry.dataSize>>(8*3)) & 255;
+	write(fd,temp,4);
+
+	//filename size
+	temp[0]= (entry.filename.length()>>(8*0)) & 255;
+	temp[1]= (entry.filename.length()>>(8*1)) & 255;
+	temp[2]=0;
+	temp[3]=0;
+	write(fd,temp,2);
+
+	//extra field size
+	//we dont use it so 0
+	temp[0]=0;
+	temp[1]=0;
+	temp[2]=0;
+	temp[3]=0;
+	write(fd,temp,2);
+
+	//filename itself
+	write(fd,entry.filename.c_str(),entry.filename.length());
+}
+
+void writeFile_socket(unsigned int fd, ZipEntry &entry){
+	//honestly this is overkill for this single line, but in the future i may want to add support for compression and such
+	write(fd,entry.data,entry.dataSize);
+}
+
+void writeCentralDirectory_socket(unsigned int fd, std::vector<ZipEntry> &files){
+	for(int x=0; x<files.size(); x++){
+		ZipEntry entry = files[x];
+
+		//magic number
+		uint8_t temp[4] = {0x50,0x4b,0x01,0x02};
+		write(fd,temp,4);
+
+		//version made by
+		temp[0]=0;
+		temp[1]=0;
+		write(fd,temp,2);
+		//minimum version
+		temp[0]=0;
+		temp[1]=0;
+		write(fd,temp,2);
+		//general purpose flags
+		temp[0]=0;
+		temp[1]=0;
+		write(fd,temp,2);
+		//compression method
+		temp[0]=0;
+		temp[1]=0;
+		write(fd,temp,2);
+		//last modified time
+		temp[0]=0;
+		temp[1]=0;
+		write(fd,temp,2);
+		//last modified date
+		temp[0]=0;
+		temp[1]=0;
+		write(fd,temp,2);
+		//CRC32
+		temp[0]=0;
+		temp[1]=0;
+		temp[2]=0;
+		temp[3]=0;
+		write(fd,temp,4);
+
+		//compressed size
+		//same size since we did not compress at all
+		temp[0]= (entry.dataSize>>(8*0)) & 255;
+		temp[1]= (entry.dataSize>>(8*1)) & 255;
+		temp[2]= (entry.dataSize>>(8*2)) & 255;
+		temp[3]= (entry.dataSize>>(8*3)) & 255;
+		write(fd,temp,4);
+		//uncompressed size
+		temp[0]= (entry.dataSize>>(8*0)) & 255;
+		temp[1]= (entry.dataSize>>(8*1)) & 255;
+		temp[2]= (entry.dataSize>>(8*2)) & 255;
+		temp[3]= (entry.dataSize>>(8*3)) & 255;
+		write(fd,temp,4);
+
+		//filename size
+		temp[0]= (entry.filename.length()>>(8*0)) & 255;
+		temp[1]= (entry.filename.length()>>(8*1)) & 255;
+		temp[2]=0;
+		temp[3]=0;
+		write(fd,temp,2);
+		//extra field length
+		temp[0]=0;
+		temp[1]=0;
+		write(fd,temp,2);
+		//file comment length
+		temp[0]=0;
+		temp[1]=0;
+		write(fd,temp,2);
+		//disk number where the file starts
+		temp[0]=0;
+		temp[1]=0;
+		write(fd,temp,2);
+		//internal file attributes
+		temp[0]=0;
+		temp[1]=0;
+		write(fd,temp,2);
+		//external file attributes
+		temp[0]=0;
+		temp[1]=0;
+		temp[2]=0;
+		temp[3]=0;
+		write(fd,temp,4);
+		//offset of file header from beginning of archive
+		temp[0]= (entry.headerOffset>>(8*0)) & 255;
+		temp[1]= (entry.headerOffset>>(8*1)) & 255;
+		temp[2]= (entry.headerOffset>>(8*2)) & 255;
+		temp[3]= (entry.headerOffset>>(8*3)) & 255;
+		write(fd,temp,4);
+
+		//filename itself
+		write(fd,entry.filename.c_str(),entry.filename.length());
+	}
+}
+
+void writeEndOfcentralDirectory_socket(unsigned int fd,std::vector<ZipEntry> &files){
+
+	int numberOfBytes_directory=0; // number of bytes the central directory is offset from the beginning of the archive
+	for(int x=0;x<files.size();x++){
+		numberOfBytes_directory+=46; // fixed width fields
+		numberOfBytes_directory+=files[x].filename.length();
+	}
+
+	//============================================================================
+
+	//magic number
+	uint8_t temp[4]={0x50,0x4b,0x05,0x06};
+	write(fd,temp,4);
+
+	//what disk is this on
+	temp[0]=0;
+	temp[1]=0;
+	write(fd,temp,2);
+	//disk that the central directory starts on
+	temp[0]=0;
+	temp[1]=0;
+	write(fd,temp,2);
+	//number of central directory records on this disk
+	temp[0]= files.size()     & 255;
+	temp[1]=(files.size()>>8) & 255;
+	write(fd,temp,2);
+	//number of central directory records total
+	temp[0]= files.size()     & 255;
+	temp[1]=(files.size()>>8) & 255;
+	write(fd,temp,2);
+
+	//size of central directory
+	temp[0]= (numberOfBytes_directory>>(8*0)) & 255;
+	temp[1]= (numberOfBytes_directory>>(8*1)) & 255;
+	temp[2]= (numberOfBytes_directory>>(8*2)) & 255;
+	temp[3]= (numberOfBytes_directory>>(8*3)) & 255;
+	write(fd,temp,4);
+	//offset of the central directory from the beginning of the archive
+	temp[0]= (offsetFromBeginning>>(8*0)) & 255;
+	temp[1]= (offsetFromBeginning>>(8*1)) & 255;
+	temp[2]= (offsetFromBeginning>>(8*2)) & 255;
+	temp[3]= (offsetFromBeginning>>(8*3)) & 255;
+	write(fd,temp,4);
+
+	//comment length
+	temp[0]=0;
+	temp[1]=0;
+	write(fd,temp,2);
+}
+
 void ZipFile::saveFile(unsigned int fd){
-	FILE* fff=fdopen(fd,"wb");
-	if(fff==NULL) return; // error
+	offsetFromBeginning=0; //reset to start counting again
 
-	saveFile(fff);
+	for(int x=0; x<files.size(); x++){
+		writeHeader_socket(fd,files[x]);
+		writeFile_socket(fd,files[x]);
+	}
 
-	//WARNING: DO NOT fclose()
+	writeCentralDirectory_socket(fd,files);
+	writeEndOfcentralDirectory_socket(fd,files);
+
+	//WARNING: DO NOT close()
 	//the pointer will be closed when a call to close() is done
 }
 
