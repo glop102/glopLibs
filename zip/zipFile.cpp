@@ -49,8 +49,10 @@ void ZipFile::addFile(std::string filename){
 	//entry data
 	//entry data size
 	entry.crc=crc_code(entry);
-	printf("%s\n",entry.filename.c_str());
-	printf("\tCRC CODE : %X\n",entry.crc);
+
+	
+	//printf("%s\n",entry.filename.c_str());
+	//printf("\tCRC CODE : %X\n",entry.crc);
 
 	files.push_back(entry);
 }
