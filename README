@@ -1,0 +1,17 @@
+GLOP Libraries
+
+This is a collection of libraries that i use between my own projects. Each folder contains a different library.
+You are welcome to try to use any single library but it is likely that you will have a little trouble as many are interdependant.
+It is recomended to simply make the root folder here and then add the object file to you compilation step.
+
+Example File
+#include "glopLibs/imageLibrary/image.h"
+
+int main(){
+	Image im(100,100,PixelType::RGB);
+	im.save("test.png",SAVE_TYPE::PNG,0);
+	return 0;
+}
+
+Example Compilation
+g++ main.cpp glopLibs/glopLibs.o -o ExampleProgram
