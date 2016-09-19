@@ -1,8 +1,13 @@
 #include "jpeg.h"
 
 namespace GLOP_IMAGE_JPEG{
+
+BinaryTree<int> luminanceDC;
+BinaryTree<int> luminanceAC;
+BinaryTree<int> chrominanceDC;
+BinaryTree<int> chrominanceAC;
 	
-	bool validJPEG(unsigned char *filebuffer){
+bool validJPEG(unsigned char *filebuffer){
 	if(filebuffer[0] == 0xFF && filebuffer[1] == 0xD8) return true;
 	return false;
 }
@@ -78,20 +83,18 @@ void unpackImage(unsigned char* filebuffer,int bufferLength, ImageData* data){
 				int type = filebuffer[x]; // type of huffman table
 				x++;
 				size--;
-				if(type==0x00) printf("Luminance DC\n");
-				else if(type==0x10) printf("Luminance AC\n");
-				else if(type==0x01) printf("Chrominance DC\n");
-				else if(type==0x11) printf("Chrominance AC\n");
-
-				for(int b=0;b<16;b++){
-					printf("\trow %d - %d entries\n",b,filebuffer[x+b]);
-				}
-				x+=16;
-				size-=16;
-
-				int code=0;
-				for(int b=0; b<size; b++){
-					printf("\t%x\n",filebuffer[x+b]);
+				if(type==0x00){
+					printf("Luminance DC\n");
+					unpackDHT(filebuffer,x,size,&luminanceAC);
+				}else if(type==0x10){
+					printf("Luminance AC\n");
+					unpackDHT(filebuffer,x,size,&luminanceDC);
+				}else if(type==0x01){
+					printf("Chrominance DC\n");
+					unpackDHT(filebuffer,x,size,&chrominanceAC);
+				}else if(type==0x11){
+					printf("Chrominance AC\n");
+					unpackDHT(filebuffer,x,size,&chrominanceDC);
 				}
 
 				x+=size; // size of the payload excluding the bytes telling us the length
@@ -127,10 +130,10 @@ void unpackImage(unsigned char* filebuffer,int bufferLength, ImageData* data){
 					}
 					printf("\tHorizontalDensity     : %d\n",(filebuffer[x+ 8]<<8) | filebuffer[x+ 9]);
 					printf("\tVerticalDensity       : %d\n",(filebuffer[x+10]<<8) | filebuffer[x+11]);
-					printf("\tHorizontal Pixel count: %d\n",filebuffer[x+12]);
+					printf("\tHorizontal Pixel count: %d\n",filebuffer[x+12]); // size here is only for the thumbnail
 					printf("\tVertical Pixel count  : %d\n",filebuffer[x+13]);
 					if(size-2 != filebuffer[x+12]*filebuffer[x+13]*3+14)
-						printf("\twring size chunk, %d %d\n",size-2,filebuffer[x+12]*filebuffer[x+13]*3+14);
+						printf("\twrong size chunk, %d %d\n",size-2,filebuffer[x+12]*filebuffer[x+13]*3+14);
 				}else{
 					printf("\t%x %x %x %x\n", filebuffer[x],filebuffer[x+1],filebuffer[x+2],filebuffer[x+3]);
 				}
@@ -143,6 +146,31 @@ void unpackImage(unsigned char* filebuffer,int bufferLength, ImageData* data){
 			}
 		}
 	}
+}
+
+void unpackDHT(unsigned char* filebuffer, int x, int size, BinaryTree<int> *tree){
+	int rows[16]; // how many entries are in each row?
+	for(int b=0;b<16;b++){
+		//printf("\trow %d - %d entries\n",b,filebuffer[x+b]);
+		rows[b] = filebuffer[x+b];
+	}
+	x+=16;
+	size-=16;
+
+	int code=0;
+	for(int b=0; b<16; b++){ // go through each row
+		for(int c=0;c<rows[b];c++){ // for each row go through every entry
+			//printf("\t%x\t%x\n",filebuffer[x+c],code);
+			tree->addNode(code,b+1,filebuffer[x+c]);
+			code++;
+		}
+		x+=rows[b];
+		size-=rows[b];
+		code = code << 1;
+	}
+
+	tree->reset(); // get it ready to be used
+	//tree->sequence(0x1fe,9);
 }
 	
 } // GLOP_IMAGE_JPEG

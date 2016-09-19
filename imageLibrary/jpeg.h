@@ -7,6 +7,7 @@
 #include <stdint.h>
 #include <math.h>
 #include "image_globals.h"
+#include "../binaryTree/binaryTree.h"
 
 namespace GLOP_IMAGE_JPEG{
 
@@ -17,6 +18,7 @@ namespace GLOP_IMAGE_JPEG{
 
 bool validJPEG(unsigned char *filebuffer);
 void unpackImage(unsigned char* filebuffer,int bufferLength, ImageData* data);
+void unpackDHT(unsigned char* filebuffer, int x, int size, BinaryTree<int> *tree);
 
 } // GLOP_IMAGE_JPEG
 
