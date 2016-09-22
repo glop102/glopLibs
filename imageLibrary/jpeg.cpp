@@ -53,10 +53,24 @@ void unpackImage(unsigned char* filebuffer,int bufferLength, ImageData* data){
 				x++;
 				x+=2; // get past the size bytes
 
+				printf("\tHeader Size - %d\n",size-2);
 				printf("\tbitdepth : %d\n",filebuffer[x]);
+				data->bitDepth=filebuffer[x];
 				printf("\tHeight: %d\n", (filebuffer[x+1]<<8) | filebuffer[x+2]);
 				printf("\tWidth : %d\n", (filebuffer[x+3]<<8) | filebuffer[x+4]);
-				//printf("\tNumber Of channels : %d\n", filebuffer[5]);
+				data->height = (filebuffer[x+1]<<8) | filebuffer[x+2];
+				data->width = (filebuffer[x+3]<<8) | filebuffer[x+4];
+				data->pixels = (Pixel*)malloc(sizeof(Pixel) * data->width * data->height);
+				printf("\tNumber Of channels : %d\n", filebuffer[x+5]);
+				printf("\tCH1 ID: %d\n", filebuffer[x+6]);
+				printf("\tCH1 subSample: %x\n", filebuffer[x+7]);
+				printf("\tCH1 QuantizationTable: %d\n", filebuffer[x+8]);
+				printf("\tCH2 ID: %d\n", filebuffer[x+9]);
+				printf("\tCH2 subSample: %x\n", filebuffer[x+10]);
+				printf("\tCH2 QuantizationTable: %x\n", filebuffer[x+11]);
+				printf("\tCH3 ID: %d\n", filebuffer[x+12]);
+				printf("\tCH3 subSample: %x\n", filebuffer[x+13]);
+				printf("\tCH3 QuantizationTable: %x\n", filebuffer[x+14]);
 
 				x+=size-2; // size of the payload and length bytes
 			}else if(0xC1 == filebuffer[x]){

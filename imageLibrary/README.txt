@@ -12,6 +12,7 @@ Building
 Current Support
 Decoding
  - PNG - all types
+ - BMP - v5 type and only for non-indexed color and for 16,24,32 bit pixels
 Encoding
  - PNG - all types except pallete for images with more than 256 colors
 

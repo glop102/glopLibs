@@ -142,7 +142,14 @@ bool Image::constructImage_fromFile(FILE *imageFP){
 		GLOP_IMAGE_JPEG::unpackImage(fileBuffer,length,&(this->imageData));
 		this->frames.push_back(this->imageData);
 		currentFrame=0;
+	} else if(GLOP_IMAGE_BMP::validBMP(fileBuffer)){
+		GLOP_IMAGE_BMP::unpackImage(fileBuffer,length,&(this->imageData));
+		this->frames.push_back(this->imageData);
+		currentFrame=0;
 	}//GIF or others come here
+	else{
+		printf("Unknown Filetype\n");
+	}
 
 	#ifdef GLOP_IMAGE_DEBUG
 		printf("Glop Image Data Debug\n");

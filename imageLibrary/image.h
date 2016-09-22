@@ -51,6 +51,7 @@
 #include "image_globals.h"
 #include "png.h"
 #include "jpeg.h"
+#include "bmp.h"
 
 class Image{
 private:
