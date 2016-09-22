@@ -295,14 +295,23 @@ namespace GLOP_IMAGE_BMP{
 				Pixel* pix;
 				pix = & (data->pixels[((data->height-1) - row) *data->width + y]);
 
-				if(data->pixelType == GRAY || data->pixelType == RGB){
+				if(data->pixelType == RGB){
 					buff[(y*3) + 2] = (pix->R) * scale;
 					buff[(y*3) + 1] = (pix->G) * scale;
 					buff[(y*3) + 0] = (pix->B) * scale;
-				}else{
+				}else if(data->pixelType == RGB_ALPHA){
 					buff[(y*4) + 3] = (pix->R) * scale;
 					buff[(y*4) + 2] = (pix->G) * scale;
 					buff[(y*4) + 1] = (pix->B) * scale;
+					buff[(y*4) + 0] = (pix->A) * scale;
+				}else if(data->pixelType == GRAY){
+					buff[(y*3) + 2] = (pix->G) * scale;
+					buff[(y*3) + 1] = (pix->G) * scale;
+					buff[(y*3) + 0] = (pix->G) * scale;
+				}else if(data->pixelType == GRAY_ALPHA){
+					buff[(y*4) + 3] = (pix->G) * scale;
+					buff[(y*4) + 2] = (pix->G) * scale;
+					buff[(y*4) + 1] = (pix->G) * scale;
 					buff[(y*4) + 0] = (pix->A) * scale;
 				}
 			}
