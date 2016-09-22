@@ -210,13 +210,15 @@ void Image::saveImage(std::string filename,SAVE_TYPE saveType, uint16_t saveOpti
 }
 void Image::saveImage(FILE* imageFP,SAVE_TYPE saveType, uint16_t saveOptions){
 
+	if(this->imageData.pixels==NULL || width()*height()==0){
+		printf("ERROR - attempting to save a zero size image\n");
+		return; // nope
+	}
 	if(saveType==SAVE_TYPE::PNG){
-		if(this->imageData.pixels==NULL || width()*height()==0){
-			printf("warning - attempting to save a zero size image\n");
-			return; // nope
-		}
 		if(saveOptions & SAVE_OPTIONS_PNG::USE_PALLETE) this->setBitDepth(8);//PNG only allows 8bit pixels in the 
 		GLOP_IMAGE_PNG::packImage(imageFP,&(this->imageData), (SAVE_OPTIONS_PNG)saveOptions);
+	}else if(saveType==SAVE_TYPE::BMP){
+		GLOP_IMAGE_BMP::packImage(imageFP,&(this->imageData), (SAVE_OPTIONS_BMP)saveOptions);
 	}
 }
 int Image::getBitDepth(){

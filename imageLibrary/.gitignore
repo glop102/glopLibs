@@ -2,17 +2,20 @@
 a.out
 build/
 main
+*.a
+*.o
 
 #exclude test images
-/*.png
-/*.jpg
-/*.raw
+*.png
+*.jpg
+*.raw
+*.bmp
 
 #exclude pre-built zlib stuff
-/zlib-*/*.lo
-/zlib-*/*.o
-/zlib-*/*.a
-/zlib-*/*.so*
+zlib-*/*.lo
+zlib-*/*.o
+zlib-*/*.a
+zlib-*/*.so*
 zlib-*/example
 zlib-*/example64
 zlib-*/examplesh

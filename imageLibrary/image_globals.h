@@ -64,7 +64,8 @@ typedef enum {
 	PNG   = 0,
 	JPEG  = 1,
 	JPG   = 1,
-	GIF   = 2
+	GIF   = 2,
+	BMP   = 3
 }SAVE_TYPE;
 
 typedef enum{
@@ -75,5 +76,8 @@ typedef enum{
 	MIN_COMPRESSION = 0b00001000,
 	MAX_COMPRESSION = 0b00010000
 }SAVE_OPTIONS_PNG;
+
+typedef enum{ // empty because i can't thing of any useful options
+} SAVE_OPTIONS_BMP;
 
 #endif

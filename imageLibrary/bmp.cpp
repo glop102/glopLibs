@@ -186,8 +186,8 @@ namespace GLOP_IMAGE_BMP{
 			printf("Row Width\t: %d\n",rowWidth);
 		#endif
 
-		for(int row=0;row<data->height;row++){
-			for(int y=0;y<data->width;y++){
+		for(unsigned int row=0;row<data->height;row++){
+			for(unsigned int y=0;y<data->width;y++){
 				uint32_t pixelData = 0; // the bytes for this pixel
 				for(int b=0 ; b<bitsPerPixel/8 ; b++){
 					pixelData |= filebuffer[(row*rowWidth) + (y*bitsPerPixel/8) + b + offset] << (8*b);
@@ -208,6 +208,105 @@ namespace GLOP_IMAGE_BMP{
 				pix->B *= BLUE_SCALE;
 				pix->A *= ALPHA_SCALE;
 			}
+		}
+	}
+
+	void packImage(FILE* imageFP,struct ImageData *data, SAVE_OPTIONS_BMP saveOptions){
+		if(data->pixelType == GRAY || data->pixelType == RGB)
+			bitsPerPixel = 24;
+		else
+			bitsPerPixel = 32;
+		unsigned int rowWidth = ((bitsPerPixel * (data->width) + 31) / 32)*4;
+		unsigned int temp = rowWidth;
+		if(rowWidth<124) temp=124;
+		unsigned char buff[temp]; // good size buffer
+
+		//===============================
+		// File Header
+		//===============================
+		buff[0]='B';
+		buff[1]='M';
+
+		unsigned int filesize=0;
+		filesize+=14; // File Header
+		filesize+=124; // DIB Header
+		filesize+=0;  // color table
+		if(data->pixelType == GRAY || data->pixelType == RGB){
+			filesize += (data->height * data->width) * 3;
+		}else if(data->pixelType == GRAY_ALPHA || data->pixelType == RGB_ALPHA){
+			filesize += (data->height * data->width) * 4;
+		}
+		buff[2]=filesize & 0xff;
+		buff[3]=(filesize>>(8*1))&0xff;
+		buff[4]=(filesize>>(8*2))&0xff;
+		buff[5]=(filesize>>(8*3))&0xff;
+
+		for(int x=0;x<8;x++)buff[6+x]=0; // make sure it is zeros
+
+		buff[10] = 124; // offset to pixel array
+
+		fwrite(buff,14,1,imageFP);
+
+		//===============================
+		// DIB Header
+		//===============================
+		for(int x=0 ; x<124 ; x++) // zero the buffer again
+			buff[x]=0;
+
+		buff[0] = 124;
+		buff[4*1 + 0] = (data->width >> (8*0)) & 0xff;
+		buff[4*1 + 1] = (data->width >> (8*1)) & 0xff;
+		buff[4*1 + 2] = (data->width >> (8*2)) & 0xff;
+		buff[4*1 + 3] = (data->width >> (8*3)) & 0xff;
+		buff[4*2 + 0] = (data->height >> (8*0)) & 0xff;
+		buff[4*2 + 1] = (data->height >> (8*1)) & 0xff;
+		buff[4*2 + 2] = (data->height >> (8*2)) & 0xff;
+		buff[4*2 + 3] = (data->height >> (8*3)) & 0xff;
+
+		buff[4*3 + 0] = 1; // number of planes - whatever this means
+		if(data->pixelType == GRAY || data->pixelType == RGB) // number of bits per pixel
+			buff[4*3 + 2] = 24;
+		else
+			buff[4*3 + 2] = 32;
+
+		buff[4*4 + 0] = 3;
+
+		//image array size
+		buff[4*5 + 0] = ((rowWidth*data->height)>>(8*0)) & 0xff;
+		buff[4*5 + 1] = ((rowWidth*data->height)>>(8*1)) & 0xff;
+		buff[4*5 + 2] = ((rowWidth*data->height)>>(8*2)) & 0xff;
+		buff[4*5 + 3] = ((rowWidth*data->height)>>(8*3)) & 0xff;
+
+		buff[4*10 + 3] = 0xFF ; // RED_MASK
+		buff[4*11 + 2] = 0xFF ; // GREEN_MASK
+		buff[4*12 + 1] = 0xFF ; // BLUE_MASK
+		buff[4*13 + 0] = 0xFF ; // ALPHA_MASK
+
+		fwrite(buff,124,1,imageFP);
+
+		//===============================
+		// Write the pixels to the array
+		//===============================
+		double scale = 8.0 / data->bitDepth; // scale to make everything 8bit channels
+
+		for(unsigned int row=0;row<data->height;row++){
+			for(unsigned int y=0;y<data->width;y++){
+
+				Pixel* pix;
+				pix = & (data->pixels[((data->height-1) - row) *data->width + y]);
+
+				if(data->pixelType == GRAY || data->pixelType == RGB){
+					buff[(y*3) + 2] = (pix->R) * scale;
+					buff[(y*3) + 1] = (pix->G) * scale;
+					buff[(y*3) + 0] = (pix->B) * scale;
+				}else{
+					buff[(y*4) + 3] = (pix->R) * scale;
+					buff[(y*4) + 2] = (pix->G) * scale;
+					buff[(y*4) + 1] = (pix->B) * scale;
+					buff[(y*4) + 0] = (pix->A) * scale;
+				}
+			}
+			fwrite(buff,rowWidth,1,imageFP);
 		}
 	}
 }
