@@ -135,7 +135,7 @@ namespace GLOP_IMAGE_BMP{
 			//make color table stuffs some time later
 			x = 14+filebuffer[14]; // jump to after the header, where the color table is
 		}else{
-			x = distToPixels; // Now, lets skip ahead to the pixels
+			x = 14+distToPixels; // Now, lets skip ahead to the pixels (header size + file descriptor size)
 			decodePixelArray(x,filebuffer,bufferLength,data);
 		}
 
@@ -243,7 +243,7 @@ namespace GLOP_IMAGE_BMP{
 
 		for(int x=0;x<8;x++)buff[6+x]=0; // make sure it is zeros
 
-		buff[10] = 124+14; // offset to pixel array
+		buff[10] = 124; // offset to pixel array after the first file header
 
 		fwrite(buff,14,1,imageFP);
 
