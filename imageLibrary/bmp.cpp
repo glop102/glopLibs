@@ -243,7 +243,7 @@ namespace GLOP_IMAGE_BMP{
 
 		for(int x=0;x<8;x++)buff[6+x]=0; // make sure it is zeros
 
-		buff[10] = 124; // offset to pixel array
+		buff[10] = 124+14; // offset to pixel array
 
 		fwrite(buff,14,1,imageFP);
 
