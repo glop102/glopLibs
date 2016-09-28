@@ -11,7 +11,7 @@
 #include <unordered_map>
 #include <set>
 #include "image_globals.h"
-#include "zlib.h"
+#include "zlib-1.2.8/zlib.h"
 
 namespace GLOP_IMAGE_PNG{
 
