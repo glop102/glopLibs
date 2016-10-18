@@ -69,6 +69,12 @@ public:
 	Image(FILE* imageFP);
 	Image(std::string filename);
 	~Image();
+	//maintaing the defaults for move operations
+	Image() = default;
+	Image(const Image &) = default;
+	Image(Image &&) = default;
+	Image& operator=(const Image&) = default;
+	Image& operator=(Image&&) = default;
 
 	uint16_t getPixel(unsigned long width,unsigned long height,int channel);
 	std::string getTextValue(std::string key);
