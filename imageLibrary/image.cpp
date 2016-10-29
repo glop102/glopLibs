@@ -134,16 +134,16 @@ bool Image::constructImage_fromFile(FILE *imageFP){
 	imageData.background.A=0;
 	imageData.pixelType=GRAY;
 
-	if(GLOP_IMAGE_PNG::validPNG(fileBuffer)){
-		GLOP_IMAGE_PNG::unpackImage(fileBuffer,length,&(this->imageData));
+	if(GLOP_IMAGE_PNG::validPNG(imageFP)){
+		GLOP_IMAGE_PNG::unpackImage(imageFP,&(this->imageData));
 		this->frames.push_back(this->imageData);
 		currentFrame=0;
-	} else if(GLOP_IMAGE_JPEG::validJPEG(fileBuffer)) {
-		GLOP_IMAGE_JPEG::unpackImage(fileBuffer,length,&(this->imageData));
-		this->frames.push_back(this->imageData);
-		currentFrame=0;
-	} else if(GLOP_IMAGE_BMP::validBMP(fileBuffer)){
-		GLOP_IMAGE_BMP::unpackImage(fileBuffer,length,&(this->imageData));
+	// } else if(GLOP_IMAGE_JPEG::validJPEG(fileBuffer)) {
+	// 	GLOP_IMAGE_JPEG::unpackImage(fileBuffer,length,&(this->imageData));
+	// 	this->frames.push_back(this->imageData);
+	// 	currentFrame=0;
+	} else if(GLOP_IMAGE_BMP::validBMP(imageFP)){
+		GLOP_IMAGE_BMP::unpackImage(imageFP,&(this->imageData));
 		this->frames.push_back(this->imageData);
 		currentFrame=0;
 	}//GIF or others come here

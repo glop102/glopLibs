@@ -7,9 +7,9 @@
 #include "image_globals.h"
 
 namespace GLOP_IMAGE_BMP{
-	bool validBMP(unsigned char *filebuffer);
-	void unpackImage(unsigned char* filebuffer,int bufferLength, ImageData* data);
-	void decodePixelArray(unsigned char* filebuffer,int bufferLength, ImageData* data);
+	bool validBMP(FILE *imageFP);
+	void unpackImage(FILE *imageFP, ImageData* data);
+	void decodePixelArray(FILE *imageFP, ImageData* data);
 	void packImage(FILE* imageFP,struct ImageData *data, SAVE_OPTIONS_BMP saveOptions);
 }
 

@@ -10,16 +10,18 @@ int crc_table_computed = 0;
 //=========================================================================
 // GENERAL FUNCTIONS
 //=========================================================================
-bool validPNG(unsigned char* fileBuffer){
+bool validPNG(FILE* imageFP){
 	//PNG validation segment
 	//the first 8 bytes are very specific and required to specify a valid PNG
 	//we check here that it is valid
-	unsigned char temp;
+	unsigned char temp[]={0,0,0,0,0,0,0,0};
 	unsigned char header[]={0x89,'P','N','G','\r','\n',0x1A,'\n'};
+	fseek(imageFP,0,SEEK_SET); //reset to the beginning
+	fread(temp,1,8,imageFP);
 
 	bool valid=true;
 	for(int x=0;x<8;x++){
-		if(header[x]!=fileBuffer[x])valid=false;
+		if(header[x]!=temp[x])valid=false;
 	}
 	#ifdef PNG_DEBUG
 	if(!valid)printf("\ninvalid PNG file\n");
@@ -27,8 +29,8 @@ bool validPNG(unsigned char* fileBuffer){
 	return valid;
 }
 
-void unpackImage(unsigned char* fileBuffer,unsigned int bufferSize,struct ImageData *data){
-	int curtPos=8;//keeps track of where we are in the buffer - starting after the header of the PNG file
+void unpackImage(FILE* imageFP,struct ImageData *data){
+	fseek(imageFP,8,SEEK_SET); //reset to the beginning
 	//basic info for how we will handle the pixel data stream
 	bool usingPalette=false; //will we use a pallete to do color lookups?
 	uint8_t palletebackgroundIndex=0; //what index in the pallete will be used as the background color
@@ -37,10 +39,8 @@ void unpackImage(unsigned char* fileBuffer,unsigned int bufferSize,struct ImageD
 	std::vector<Pixel> transparencyList; //list of what colors are transparent (0% alpha)
 	std::vector<Pixel> palleteList;
 
-	while(curtPos<bufferSize){
-		ChunkData chunk=getNextChunk(fileBuffer,curtPos,bufferSize);
-		if(chunk.length > bufferSize-curtPos) chunk.length = bufferSize-curtPos; // dont overflow the chunk buffer if the chunk was not completly transmitted
-		curtPos+=chunk.length+4+4+4;//length of the data itself, length of the chunk type, lenght of the CRC, length of the number telling us the length of the data
+	while(!feof(imageFP)){
+		ChunkData chunk=getNextChunk(imageFP);
 
 		if(strcmp(chunk.type,"IHDR")==0){
 			#ifdef PNG_DEBUG
@@ -88,12 +88,13 @@ void unpackImage(unsigned char* fileBuffer,unsigned int bufferSize,struct ImageD
 			//There may be several IDAT chunks, but we need to ignore the ones after the first one
 			//This is because in the function we call, we go ahead and read ALL the IDAT chunks since we need them all
 			if(handledIDAT)continue; //SKIP!! - should not be needed anymore since we are changing curtPos in the unpacking
-			handledIDAT=true;        // we are keeping this around though to just be safe
+			handledIDAT=true;
 			data->pixels = (struct Pixel*)malloc(data->width * data->height * sizeof(Pixel) );
-			unsigned char *pixelStream = unpackPixelStream(data,chunk,curtPos,bufferSize,adam7Interlace);
+			unsigned char *pixelStream = unpackPixelStream(data,chunk,adam7Interlace,imageFP);
 			if(pixelStream==NULL){
 				printf("Invalid Stream In Data\n");
 				free(data->pixels);
+				data->pixels=NULL;
 				data->width=0;
 				data->height=0;
 				data->bitDepth=0;
@@ -160,11 +161,11 @@ void unpackImage(unsigned char* fileBuffer,unsigned int bufferSize,struct ImageD
 			}
 		}else if(strcmp(chunk.type,"tEXt")==0){
 			//key value pair that has text on it
-			std::string s1=(const char*)chunk.data;
+			std::string s1=(const char*)chunk.data.data();
 			std::string s2;
 
 			chunk.length-=s1.length()+1; //move to after the null terminator
-			chunk.data+=s1.length()+1;
+			chunk.data.erase(chunk.data.begin(),chunk.data.begin()+s1.length()+2);
 			//get the rest of the string after the null terminator
 			char temp[chunk.length]; //big enough for the rest of the data length and a null terminator
 			for(int x=0;x<chunk.length;x++) temp[x]=chunk.data[x]; //copy the data to a place that we can put a null without breaking our data
@@ -180,20 +181,22 @@ void unpackImage(unsigned char* fileBuffer,unsigned int bufferSize,struct ImageD
 		}else if(strcmp(chunk.type,"iTXt")==0){
 			//key value pair that has text on it
 			//this might be compressed or have unicode or something - this may break on some things
-			std::string s1=(const char*)chunk.data;
+			std::string s1=(const char*)chunk.data.data();
 			std::string s2;
 
 			chunk.length-=s1.length()+1; //move to after the null terminator
-			chunk.data+=s1.length()+1;
+			chunk.data.erase(chunk.data.begin(),chunk.data.begin()+s1.length()+2);
+
 			bool compressed=chunk.data[0];
 			bool compressionMethod=chunk.data[1];
-			chunk.data+=2;
+			chunk.data.erase(chunk.data.begin(),chunk.data.begin()+2);
 			chunk.length-=2;
+
 			//get past the language tag and the translated keyword
-			while(chunk.data[0]!=0){chunk.data++;chunk.length--;} //move untill after the next null terminator
-			chunk.data++;chunk.length--;
-			while(chunk.data[0]!=0){chunk.data++;chunk.length--;} //move untill after the next null terminator
-			chunk.data++;chunk.length--;
+			while(chunk.data[0]!=0){chunk.data.erase(chunk.data.begin());chunk.length--;} //move until after the next null terminator
+			chunk.data.erase(chunk.data.begin());chunk.length--;
+			while(chunk.data[0]!=0){chunk.data.erase(chunk.data.begin());chunk.length--;} //move until after the next null terminator
+			chunk.data.erase(chunk.data.begin());chunk.length--;
 
 			//get the rest of the string after the null terminator
 			char temp[chunk.length+1]; //big enough for the rest of the data length and a null terminator
@@ -585,7 +588,7 @@ void packImage(FILE* imageFP,struct ImageData *data, SAVE_OPTIONS_PNG saveOption
 //=========================================================================
 // SPECIFIC FUNCTIONS
 //=========================================================================
-struct ChunkData getNextChunk(unsigned char* fileBuffer, unsigned int startingPos,unsigned int maxLength){
+struct ChunkData getNextChunk(FILE *imageFP){
 	/*
 		Given the file buffer, quite simply we read the buffer untill we get to the next chunk
 		We then return a struct with the basic info of what the chunk type is
@@ -599,29 +602,39 @@ struct ChunkData getNextChunk(unsigned char* fileBuffer, unsigned int startingPo
 	chunk.length=0;
 
 	//sanity check # 1
-	if(startingPos+11>=maxLength){ // make sure there is enough space to read for the length, type, and CRC code
+	if(feof(imageFP)){ // make sure there is enough space to read for the length, type, and CRC code
 		chunk.type[0]='I';
 		chunk.type[1]='E';
 		chunk.type[2]='N';
 		chunk.type[3]='D';
-		chunk.data=fileBuffer;
 		return chunk;
 	}
 
+	unsigned char buff[4];
+	//lets get the length of our chunk
+	fread(buff,1,4,imageFP);
 	for(int x=0;x<4;x++)
-		chunk.length|=fileBuffer[startingPos+x]<<((3-x)*8);
-	startingPos+=4;
+		chunk.length|=buff[x]<<((3-x)*8);
+	//lets see what the 4 letter identifier is for this chunk
+	fread(buff,1,4,imageFP);
 	for(int x=0;x<4;x++)
-		chunk.type[x]=fileBuffer[startingPos+x];
-	startingPos+=4;
+		chunk.type[x]=buff[x];
+
 	#ifdef PNG_DEBUG
 		printf("Chunk Name :: %s\nChunk Length :: %d\n\n",chunk.type,chunk.length);
 	#endif
-	chunk.data = fileBuffer + startingPos;
+
+	//read in all the chunks data and save it to our vector
+	chunk.data.reserve(chunk.length);
+	for(unsigned int x=0; x<chunk.length && !feof(imageFP); x++){
+		// chunk.data = fileBuffer + startingPos;
+		fread(buff,1,1,imageFP);
+		chunk.data.push_back(buff[0]);
+	}
 
 	//sanity check # 2
-	if(chunk.length > maxLength - startingPos){ // dont overflow the chunk buffer if the chunk was not completly transmitted
-		chunk.length = maxLength - startingPos;
+	if(chunk.length > chunk.data.size()){ // dont overflow the chunk buffer if the chunk was not completly transmitted
+		chunk.length = chunk.data.size();
 		#ifdef PNG_DEBUG
 			printf("Chunk Not Fully Transmitted\n");
 			printf("New Chunk Length : %d\n\n",chunk.length);
@@ -629,9 +642,8 @@ struct ChunkData getNextChunk(unsigned char* fileBuffer, unsigned int startingPo
 		return chunk;
 	}
 
-	startingPos+=chunk.length;
-	for(int x=0;x<4;x++)
-		chunk.CRC|=fileBuffer[startingPos+x]<<((3-x)*8);
+	//clear out the 4 byte CRC code
+	fread(buff,1,4,imageFP);
 
 	return chunk;
 }
@@ -682,7 +694,7 @@ Pixel __singleTransparentColor(ImageData* data){
 	return {0,0,0,0}; // default option
 }
 
-unsigned char* unpackPixelStream(struct ImageData *data,struct ChunkData chunk,int &curtPos,int bufferSize,bool interlaced){
+unsigned char* unpackPixelStream(struct ImageData *data,struct ChunkData chunk,bool interlaced,FILE* imageFP){
 	#ifdef PNG_DEBUG
 		printf("Unpacking Data Buffer\n\n");
 	#endif
@@ -721,7 +733,7 @@ unsigned char* unpackPixelStream(struct ImageData *data,struct ChunkData chunk,i
 	//also fixed a buffer overflow vulnerability
 	while(strcmp(chunk.type,"IDAT")==0){
 		strm.avail_in = chunk.length; //the size of the input buffer
-		strm.next_in = chunk.data; //the raw array of our data
+		strm.next_in = chunk.data.data(); //the raw array of our data
 		strm.avail_out = bufferLeft; // how much of
 		strm.next_out = out + (pixelStreamSize - bufferLeft); // move to the end of the previously decoded data
 
@@ -740,14 +752,7 @@ unsigned char* unpackPixelStream(struct ImageData *data,struct ChunkData chunk,i
 		}
 
 		bufferLeft = strm.avail_out; // save how much of the buffer we
-		chunk = getNextChunk(chunk.data,chunk.length+4,bufferSize);
-		if(chunk.length > bufferSize-curtPos){
-			chunk.length = bufferSize-curtPos; // dont overflow the chunk buffer if the chunk was not completly transmitted
-			#ifdef PNG_DEBUG
-				printf("WARNING : data in chunk is longer than total data in file\n\n");
-			#endif
-		}
-		curtPos+=chunk.length+4+4+4;//length of the data itself, length of the chunk type, lenght of the CRC, length of the number telling us the length of the data
+		chunk = getNextChunk(imageFP);
 	}
 
 	inflateEnd(&strm);

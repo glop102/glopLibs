@@ -79,8 +79,8 @@ int main(int argc, char **args){
 	//}
 
 	if(argc==3)image.saveImage(args[2],PNG,NOTHING);
-	//else image.saveImage("temp2.png",PNG,NOTHING);
-	else image.saveImage("temp2.bmp",BMP,NOTHING);
+	else image.saveImage("temp2.png",PNG,NOTHING);
+	// else image.saveImage("temp2.bmp",BMP,NOTHING);
 	//image.saveImage("temp2.png",PNG,INTERLACING);
 	//writeImageFile(image,"test.raw");
 	//color shift

@@ -11,14 +11,17 @@ namespace GLOP_IMAGE_BMP{
 	bool upsideDownRows = true; // it is ussually true
 	std::vector<Pixel> colorTable;
 
-	bool validBMP(unsigned char *filebuffer){
-		if(filebuffer[0] != 'B' || filebuffer[1]!='M')
+	bool validBMP(FILE *imageFP){
+		fseek(imageFP,0,SEEK_SET); //reset to the beginning
+		unsigned char buff[15];
+		fread(buff,1,15,imageFP);
+		if(buff[0] != 'B' || buff[1]!='M')
 			return false;
 
 		//now we check if at byte 0x14 if it is one of the known good values
 		//this byte is the size of the header and is different for different versions
 		//most ofter it is 128 as that size is for the newest format
-		switch(filebuffer[14]){
+		switch(buff[14]){
 			case  12: // windows 2
 			case  64: // OS/2 v2
 			case  16: // OS/2 v2 special case
@@ -34,16 +37,20 @@ namespace GLOP_IMAGE_BMP{
 		return true;
 	}
 
-	void unpackImage(unsigned char* filebuffer,int bufferLength, ImageData* data){
-		distToPixels = (filebuffer[10]<<(8*0)) | (filebuffer[11]<<(8*1)) | (filebuffer[12]<<(8*2)) | ((filebuffer[13])<<(8*3));
-		headerSize = filebuffer[14];
+	void unpackImage(FILE *imageFP, ImageData* data){
+		fseek(imageFP,10,SEEK_SET);
+		unsigned char buff[124];
+		fread(buff,1,5,imageFP);
+
+		distToPixels = (buff[0]<<(8*0)) | (buff[1]<<(8*1)) | (buff[2]<<(8*2)) | ((buff[3])<<(8*3));
+		headerSize = buff[4];
 		bitsPerPixel=0;
 		compressionMethod=0;
 		colorTableLength=0;
 		upsideDownRows = true; // it is ussually true
 
 		//start by reading the header and get the basic info about the image
-		int x=14;
+		int x=0;
 		switch(headerSize){
 			case  12: // windows 2
 			case  64: // OS/2 v2
@@ -55,13 +62,14 @@ namespace GLOP_IMAGE_BMP{
 				return;
 			case  40: // Windows NT 3.1x
 			case 124: // Windows NT 5.0 , Win98
+				fseek(imageFP,14,SEEK_SET);
+				fread(buff,1,124,imageFP);
 				x+=4; // get past the bytes that say how large the header is
-				headerSize-=4;
 
-				data->width = (filebuffer[x+0]<<(8*0)) | (filebuffer[x+1]<<(8*1)) | (filebuffer[x+2]<<(8*2)) | (filebuffer[x+3]<<(8*3));
-				x+=4; headerSize-=4;
+				data->width = (buff[x+0]<<(8*0)) | (buff[x+1]<<(8*1)) | (buff[x+2]<<(8*2)) | (buff[x+3]<<(8*3));
+				x+=4;
 				{ // bmp files are allowed to have negative heights
-					int32_t heightTemp = (filebuffer[x+0]<<(8*0)) | (filebuffer[x+1]<<(8*1)) | (filebuffer[x+2]<<(8*2)) | (filebuffer[x+3]<<(8*3));
+					int32_t heightTemp = (buff[x+0]<<(8*0)) | (buff[x+1]<<(8*1)) | (buff[x+2]<<(8*2)) | (buff[x+3]<<(8*3));
 					if(heightTemp>=0)
 						data->height = heightTemp;
 					else{
@@ -69,13 +77,13 @@ namespace GLOP_IMAGE_BMP{
 						upsideDownRows = false;
 					}
 				}
-				x+=4; headerSize-=4;
+				x+=4;
 				data->pixels = (struct Pixel*)malloc(data->width * data->height * sizeof(Pixel) );
 
 				// planes = filebuffer[] .....
-				x+=2; headerSize-=2;
-				bitsPerPixel = (filebuffer[x+0]<<(8*0)) | (filebuffer[x+1]<<(8*1)) ; 
-				x+=2; headerSize-=2;
+				x+=2;
+				bitsPerPixel = (buff[x+0]<<(8*0)) | (buff[x+1]<<(8*1)) ; 
+				x+=2;
 				switch(bitsPerPixel){
 					case 1:
 					case 2:
@@ -89,6 +97,8 @@ namespace GLOP_IMAGE_BMP{
 						printf("Incorrect bitsPerPixel value: %d\n",bitsPerPixel);
 						data->height=0;
 						data->width=0;
+						free(data->pixels);
+						data->pixels = NULL;
 						return;
 				}
 				if(bitsPerPixel == 32)
@@ -96,8 +106,8 @@ namespace GLOP_IMAGE_BMP{
 				else
 					data->pixelType = PixelType::RGB; // assume is RGB until otherwise
 
-				compressionMethod = (filebuffer[x+0]<<(8*0)) | (filebuffer[x+1]<<(8*1)) | (filebuffer[x+2]<<(8*2)) | (filebuffer[x+3]<<(8*3));
-				x+=4; headerSize-=4;
+				compressionMethod = (buff[x+0]<<(8*0)) | (buff[x+1]<<(8*1)) | (buff[x+2]<<(8*2)) | (buff[x+3]<<(8*3));
+				x+=4;
 				switch(compressionMethod){
 					case 1: // RunLengthEncoding 8BIT
 					case 2: // RunLengthEncoding 4BIT
@@ -122,30 +132,30 @@ namespace GLOP_IMAGE_BMP{
 				}
 
 				//image size - raw bytes size of the whole pixel array
-				x+=4; headerSize-=4;
+				x+=4;
 				//x meters per pixel
 				//y meters per pixel
-				x+=8; headerSize-=8;
+				x+=8;
 
-				colorTableLength = (filebuffer[x+0]<<(8*0)) | (filebuffer[x+1]<<(8*1)) | (filebuffer[x+2]<<(8*2)) | (filebuffer[x+3]<<(8*3));
-				x+=4; headerSize-=4;
+				colorTableLength = (buff[x+0]<<(8*0)) | (buff[x+1]<<(8*1)) | (buff[x+2]<<(8*2)) | (buff[x+3]<<(8*3));
+				x+=4;
 
 				//important color count - we can ignore this one
-				x+=4;
-				headerSize-=4;
+				// x+=4;
 
-				//now lets jump to the color table
-				x+=headerSize;
-				headerSize=0;
+				//NOW it is time to deal with the color table - it is an optional thing
+				fseek(imageFP,14+headerSize,SEEK_SET);
+
 
 				colorTable.clear(); // lets reset this baby and start fresh for the new image
 				colorTable.reserve(colorTableLength);
-				while(x<distToPixels){
+				while(ftell(imageFP)<distToPixels){
+					fread(buff,1,4,imageFP);
 					Pixel temp;
-					temp.B=filebuffer[x + 0]; // colors are in the table as BGR
-					temp.G=filebuffer[x + 1];
-					temp.R=filebuffer[x + 2];
-					temp.A=filebuffer[x + 3];
+					temp.B=buff[0]; // colors are in the table as BGR
+					temp.G=buff[1];
+					temp.R=buff[2];
+					temp.A=buff[3];
 					if(temp.A != 0) data->pixelType=RGB_ALPHA;
 					x+=4;
 				}
@@ -169,12 +179,11 @@ namespace GLOP_IMAGE_BMP{
 				return;
 		}
 
-		x = distToPixels; // Now, lets skip ahead to the pixels (header size + file descriptor size)
-		decodePixelArray(filebuffer+x,bufferLength,data);
-
+		fseek(imageFP,distToPixels,SEEK_SET); // Now, lets skip ahead to the pixels (header size + file descriptor size)
+		decodePixelArray(imageFP,data);
 	}
 
-	void decodePixelArray(unsigned char* filebuffer,int bufferLength, ImageData* data){
+	void decodePixelArray(FILE *imageFP, ImageData* data){
 		//==============================================
 		// ACTUAL DECODING OF PIXELS NOW
 		//==============================================
@@ -195,6 +204,8 @@ namespace GLOP_IMAGE_BMP{
 			printf("");
 		#endif
 
+		unsigned char filebuffer[rowWidth*data->height];
+		fread(filebuffer,1,rowWidth*data->height,imageFP);
 		for(unsigned int row=0;row<data->height;row++){
 			for(unsigned int y=0;y<data->width;y++){
 				Pixel *pix;

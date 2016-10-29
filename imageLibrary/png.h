@@ -10,6 +10,7 @@
 #include <unordered_set>
 #include <unordered_map>
 #include <set>
+#include <vector>
 #include "image_globals.h"
 #include "zlib-1.2.8/zlib.h"
 
@@ -59,19 +60,19 @@ namespace GLOP_IMAGE_PNG{
 struct ChunkData{
 	uint32_t length;
 	char type[5];
-	unsigned char* data;
+	std::vector<unsigned char> data;
 	uint32_t CRC;
 };
 
 //=========================================================================
 //---- GeneralFunctions
-bool validPNG(unsigned char* fileBuffer);
-void unpackImage(unsigned char* fileBuffer,unsigned int bufferSize,struct ImageData *data); // decode the file that is buffered into usable data
+bool validPNG(FILE* imageFP);
+void unpackImage(FILE* imageFP,struct ImageData *data); // decode the file that is buffered into usable data
 void packImage(FILE* imageFP,struct ImageData *data, SAVE_OPTIONS_PNG saveOptions); // encode the data into the file buffer pointer and tell them how long the buffer is
 
 //---- Specific Functions
 // get the compressed pixel stream and unpack it into an array
-unsigned char* unpackPixelStream(struct ImageData *data,struct ChunkData chunk,int &curtPos,int bufferSize,bool interlaced); 
+unsigned char* unpackPixelStream(struct ImageData *data,struct ChunkData chunk,bool interlaced,FILE* imageFP); 
 // given the pixel stream, put the pixels into the image
 void decodePixelStream(struct ImageData *data,unsigned char *pixelStream,std::vector<Pixel> &palleteList,std::vector<Pixel> &transparencyList); 
 void decodePixelStream_interlaced(struct ImageData *data,unsigned char *pixelStream,std::vector<Pixel> &palleteList,std::vector<Pixel> &transparencyList);
@@ -92,7 +93,7 @@ std::vector<Pixel> createPallete(struct ImageData *data);
 
 //---- Utility Functions
 // utility to get the next chunk of data from the file
-struct ChunkData getNextChunk(unsigned char* fileBuffer, unsigned int startingPos,unsigned int maxLength);
+struct ChunkData getNextChunk(FILE* imageFP);
 // utility to reverse the bytes in a memory location
 void __REVERSE_BYTES(unsigned char*,int);
 // given a memory location, get data of bits long from the stream - allowed bits 1,2,4,8,16

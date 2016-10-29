@@ -99,16 +99,16 @@ void unpackImage(unsigned char* filebuffer,int bufferLength, ImageData* data){
 				size--;
 				if(type==0x00){
 					printf("Luminance DC\n");
-					unpackDHT(filebuffer,x,size,&luminanceAC);
+					unpackDHT(filebuffer,x,size,&luminanceDC);
 				}else if(type==0x10){
 					printf("Luminance AC\n");
-					unpackDHT(filebuffer,x,size,&luminanceDC);
+					unpackDHT(filebuffer,x,size,&luminanceAC);
 				}else if(type==0x01){
 					printf("Chrominance DC\n");
-					unpackDHT(filebuffer,x,size,&chrominanceAC);
+					unpackDHT(filebuffer,x,size,&chrominanceDC);
 				}else if(type==0x11){
 					printf("Chrominance AC\n");
-					unpackDHT(filebuffer,x,size,&chrominanceDC);
+					unpackDHT(filebuffer,x,size,&chrominanceAC);
 				}
 
 				x+=size; // size of the payload excluding the bytes telling us the length
@@ -121,7 +121,28 @@ void unpackImage(unsigned char* filebuffer,int bufferLength, ImageData* data){
 				printf("Start Of Scan\n");
 				x++;
 
-				x+=size; // size of the payload and length bytes
+				int numBlocksWide = (data->width/8) + (data->width%8); // rounds up
+				int numBlocksTall = (data->height/8) + (data->height%8); // rounds up
+
+				//What block number we are on as we go through the image
+				int blockCounter = 0;
+
+				//what channel we are on as we are decoding
+				//values are LUMINANCE CHROMINANCE(red) CHROMINANCE(green)
+				// follow these values by incrementing until the top, and then reset
+				int blockChannel = 0;
+
+				while(true){
+					unsigned char temp = filebuffer[x];
+					for(int x=0;x<8;x++){
+						if(blockChannel==0){
+							//luminance
+						}
+					}
+					x++;
+				}
+
+				//x+=size; // size of the payload and length bytes
 			}else if(0xFE == filebuffer[x]){
 				printf("Comment\n");
 				x++;
@@ -165,7 +186,7 @@ void unpackImage(unsigned char* filebuffer,int bufferLength, ImageData* data){
 void unpackDHT(unsigned char* filebuffer, int x, int size, BinaryTree<int> *tree){
 	int rows[16]; // how many entries are in each row?
 	for(int b=0;b<16;b++){
-		//printf("\trow %d - %d entries\n",b,filebuffer[x+b]);
+		printf("\trow %d - %d entries\n",b,filebuffer[x+b]);
 		rows[b] = filebuffer[x+b];
 	}
 	x+=16;
@@ -174,7 +195,7 @@ void unpackDHT(unsigned char* filebuffer, int x, int size, BinaryTree<int> *tree
 	int code=0;
 	for(int b=0; b<16; b++){ // go through each row
 		for(int c=0;c<rows[b];c++){ // for each row go through every entry
-			//printf("\t%x\t%x\n",filebuffer[x+c],code);
+			printf("\t%x\t%x\n",filebuffer[x+c],code);
 			tree->addNode(code,b+1,filebuffer[x+c]);
 			code++;
 		}
