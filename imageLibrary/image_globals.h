@@ -69,12 +69,12 @@ typedef enum {
 }SAVE_TYPE;
 
 typedef enum{
-	NOTHING         = 0b00000000,
+	PNG_NOTHING     = 0b00000000,
 	INTERLACING     = 0b00000001,
-	USE_PALLETE     = 0b00000010,
-	NO_COMPRESSION  = 0b00000100,
-	MIN_COMPRESSION = 0b00001000,
-	MAX_COMPRESSION = 0b00010000
+	//recomened to not use these options and let the libpng use the default settings
+	NO_COMPRESSION  = 0b00000010, // does waht it says on the tin
+	MIN_COMPRESSION = 0b00000100, // just the most simple compression
+	MAX_COMPRESSION = 0b00001000  // do everything you can to cram it in
 }SAVE_OPTIONS_PNG;
 
 typedef enum{ // empty because i can't thing of any useful options

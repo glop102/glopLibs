@@ -109,17 +109,13 @@ bool Image::constructImage_fromFile(FILE *imageFP){
 			If it finds a valid one it then it asks it to decode the image
 			The functions do the allocation and maths appropriate to the format
 	*/
-	unsigned char *fileBuffer=(unsigned char*)malloc(10000);
-	while(!feof(imageFP)){
-		int written = fread(fileBuffer,1,9999,imageFP); //read until the end of the file - ussually only 1 or two of these operations
-	}
-	free(fileBuffer);
-
+	fseek(imageFP, 0L, SEEK_END);
 	int length=ftell(imageFP);
 	#ifdef GLOP_IMAGE_DEBUG
 		printf("FileSize:  %d\n\n",length);
 	#endif
-	fileBuffer=(unsigned char*)malloc(length);
+
+	unsigned char* fileBuffer=(unsigned char*)malloc(length);
 	fseek(imageFP,0,SEEK_SET); //reset to the beginning
 	int written = fread(fileBuffer,1,length,imageFP);
 
@@ -215,7 +211,10 @@ void Image::saveImage(FILE* imageFP,SAVE_TYPE saveType, uint16_t saveOptions){
 		return; // nope
 	}
 	if(saveType==SAVE_TYPE::PNG){
-		if(saveOptions & SAVE_OPTIONS_PNG::USE_PALLETE) this->setBitDepth(8);//PNG only allows 8bit pixels in the 
+		if(this->imageData.pixelType != RGB && this->imageData.pixelType != RGB_ALPHA){
+			printf("Error, only RGB and RGB_ALPHA images are currently supported\n");
+			return;
+		}
 		GLOP_IMAGE_PNG::packImage(imageFP,&(this->imageData), (SAVE_OPTIONS_PNG)saveOptions);
 	}else if(saveType==SAVE_TYPE::BMP){
 		GLOP_IMAGE_BMP::packImage(imageFP,&(this->imageData), (SAVE_OPTIONS_BMP)saveOptions);
@@ -230,24 +229,40 @@ void Image::setBitDepth(int val){
 	//This makes it easier on the end user since they can do the scaling and then not worry about checking again
 	for(int frame=0;frame<this->frames.size();frame++){
 		if(val==this->frames[frame].bitDepth)continue; // skip since it is already correct
-		double scale = (pow(2,val)-1) / (pow(2,this->frames[frame].bitDepth)-1);
+		// double scale = (pow(2,val)-1) / (pow(2,this->frames[frame].bitDepth)-1);
+		int shift = this->frames[frame].bitDepth - val;
 
 		#ifdef GLOP_IMAGE_DEBUG
 			printf("Scaling Frame %d\n",frame);
-			printf("       Factor %f\n",scale);
+			printf("       Factor %f\n",shift);
 		#endif
 
-		for(unsigned int x=0;x<width()*height();x++){
-			this->frames[frame].pixels[x].R = (unsigned int)ceil(this->frames[frame].pixels[x].R * scale);
-			this->frames[frame].pixels[x].G = (unsigned int)ceil(this->frames[frame].pixels[x].G * scale);
-			this->frames[frame].pixels[x].B = (unsigned int)ceil(this->frames[frame].pixels[x].B * scale);
-			this->frames[frame].pixels[x].A = (unsigned int)ceil(this->frames[frame].pixels[x].A * scale);
+		if(this->frames[frame].bitDepth > val){
+			for(unsigned int x=0;x<width()*height();x++){
+				this->frames[frame].pixels[x].R = this->frames[frame].pixels[x].R >> shift;
+				this->frames[frame].pixels[x].G = this->frames[frame].pixels[x].G >> shift;
+				this->frames[frame].pixels[x].B = this->frames[frame].pixels[x].B >> shift;
+				this->frames[frame].pixels[x].A = this->frames[frame].pixels[x].A >> shift;
+			}
+			this->frames[frame].background.R = this->frames[frame].background.R >> shift;
+			this->frames[frame].background.G = this->frames[frame].background.G >> shift;
+			this->frames[frame].background.B = this->frames[frame].background.B >> shift;
+			this->frames[frame].background.A = this->frames[frame].background.A >> shift;
+			this->frames[frame].bitDepth=val;
+		}else{
+			shift = -shift;
+			for(unsigned int x=0;x<width()*height();x++){
+				this->frames[frame].pixels[x].R = this->frames[frame].pixels[x].R << shift;
+				this->frames[frame].pixels[x].G = this->frames[frame].pixels[x].G << shift;
+				this->frames[frame].pixels[x].B = this->frames[frame].pixels[x].B << shift;
+				this->frames[frame].pixels[x].A = this->frames[frame].pixels[x].A << shift;
+			}
+			this->frames[frame].background.R = this->frames[frame].background.R << shift;
+			this->frames[frame].background.G = this->frames[frame].background.G << shift;
+			this->frames[frame].background.B = this->frames[frame].background.B << shift;
+			this->frames[frame].background.A = this->frames[frame].background.A << shift;
+			this->frames[frame].bitDepth=val;
 		}
-		this->frames[frame].background.R = (unsigned int)ceil(this->frames[frame].background.R * scale);
-		this->frames[frame].background.G = (unsigned int)ceil(this->frames[frame].background.G * scale);
-		this->frames[frame].background.B = (unsigned int)ceil(this->frames[frame].background.B * scale);
-		this->frames[frame].background.A = (unsigned int)ceil(this->frames[frame].background.A * scale);
-		this->frames[frame].bitDepth=val;
 	}
 	this->imageData=this->frames[this->currentFrame]; // update our current frame data
 
@@ -255,6 +270,10 @@ void Image::setBitDepth(int val){
 		//printf("%x\n%x",this->imageData.pixels,this->frames[0].pixels);
 		printf("\n");
 	#endif
+}
+
+std::map<std::string,std::vector<std::string> >& Image::getTextMappings(){
+	return imageData.textPairs;
 }
 
 void printPixel(Pixel p){

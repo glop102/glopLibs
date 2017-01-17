@@ -47,54 +47,18 @@ int main(int argc, char **args){
 	Image image(args[1]);
 
 	//=======================================================
-	//randomBandShift_channel(image,18,-.01,0b0001); // shift Red
-	/*for(int x=0;x<2;x++){
-		randomBandShift(image,image2,2*x+1,-.02);
-		//sinShift(image2,image,3,0.025);
-		randomBandShift(image2,image,2*x+2,-.02);
-		//sinShift(image2,image,6,0.075);
-	}*/
-	//sinShift(image,image2,10,.05);
+	// randomBandShift(image,16,-0.2);
+	// sinShift(image,6,0.25);
 
-	//printf("%d %d %d %d\n",image[0][0].R,image[0][0].G,image[0][0].B,image[0][0].A);
-	//image.setBitDepth(4);
-	//printf("%d %d %d %d\n",image[0][0].R,image[0][0].G,image[0][0].B,image[0][0].A);
-	//image.setBitDepth(8);
-	//printf("%d %d %d %d\n",image[0][0].R,image[0][0].G,image[0][0].B,image[0][0].A);
 
-	//convertRGBToHSV(image);
-	//sortHorizontal(image);
-	//convertHSVtoRGB(image);
+	// auto& pairs = image.getTextMappings();
+	// pairs["TestComment"].push_back("With Test Text");
+	// pairs["TestComment2"].push_back("With Test Text");
+	// pairs["TestComment3"].push_back("With Test Text");
 
-	//convertRGBToHSV(image);
-	//convertRGBToIDK(image);
-	//convertRGBToYCbCr(image);
-	//convertRGBToCMY(image);
-
-	//for(int y=0;y<image.height();y++){
-	//	for(int x=0;x<image.width();x++){
-	//		image[y][x].G=0;
-	//		image[y][x].B=0;
-	//	}
-	//}
-
-	if(argc==3)image.saveImage(args[2],PNG,NOTHING);
-	else image.saveImage("temp2.png",PNG,NOTHING);
-	// else image.saveImage("temp2.bmp",BMP,NOTHING);
-	//image.saveImage("temp2.png",PNG,INTERLACING);
-	//writeImageFile(image,"test.raw");
-	//color shift
-	/*for(int y=0;y<image.height();y++){
-		for(int x=0;x<image.width();x++){
-			int r=image2[y][x].R;
-			int g=image2[y][x].G;
-			int b=image2[y][x].B;
-
-			image2[y][x].R=r;
-			image2[y][x].G=g;
-			image2[y][x].B=b;
-		}
-	}*/
+	printf("Saving image..\n");
+	if(argc==3)image.saveImage(args[2],PNG,PNG_NOTHING);
+	else image.saveImage("temp.png",PNG,PNG_NOTHING);
 
 	return 0;
 }
@@ -206,22 +170,6 @@ void sinShift(Image& image,double bands, double shiftAmount){
 			image[y][((long)( x + (sin(y/(double)bandHeight)*bandShift) ))%image.width()]=temp;
 		}
 	}
-}
-void writeImageFile(Image& image2,const char* filename){
-	printf("\n\nsaving\n");
-
-	FILE *test = fopen(filename,"wb");
-	fprintf(test,"%ld %ld\n",image2.width(),image2.height());
-	for(int y=0;y<image2.height();y++){
-		for(int x=0;x<image2.width();x++){
-			int r=image2[y][x].R;
-			int g=image2[y][x].G;
-			int b=image2[y][x].B;
-			int a=image2[y][x].A;
-			fprintf(test,"%3d %3d %3d %3d\n",r,g,b,a);
-		}
-	}
-	fclose(test);
 }
 double min(double f,double s){
 	if(f<s) return f;

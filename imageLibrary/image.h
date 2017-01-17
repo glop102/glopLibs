@@ -77,9 +77,10 @@ public:
 	Image& operator=(Image&&) = default;
 
 	uint16_t getPixel(unsigned long width,unsigned long height,int channel);
-	std::string getTextValue(std::string key);
+	std::vector<std::string> getTextValueS(std::string key);
 	std::vector<std::string> getTextKeys();
 	std::vector<std::string> getTags();
+	std::map<std::string,std::vector<std::string> >& getTextMappings();
 	unsigned long width();
 	unsigned long height();
 	Pixel* operator[](unsigned int y);
