@@ -109,15 +109,6 @@ bool Image::constructImage_fromFile(FILE *imageFP){
 			If it finds a valid one it then it asks it to decode the image
 			The functions do the allocation and maths appropriate to the format
 	*/
-	fseek(imageFP, 0L, SEEK_END);
-	int length=ftell(imageFP);
-	#ifdef GLOP_IMAGE_DEBUG
-		printf("FileSize:  %d\n\n",length);
-	#endif
-
-	unsigned char* fileBuffer=(unsigned char*)malloc(length);
-	fseek(imageFP,0,SEEK_SET); //reset to the beginning
-	int written = fread(fileBuffer,1,length,imageFP);
 
 	//==========================
 	//set data to known values - mostly all zeros
@@ -134,10 +125,10 @@ bool Image::constructImage_fromFile(FILE *imageFP){
 		GLOP_IMAGE_PNG::unpackImage(imageFP,&(this->imageData));
 		this->frames.push_back(this->imageData);
 		currentFrame=0;
-	// } else if(GLOP_IMAGE_JPEG::validJPEG(fileBuffer)) {
-	// 	GLOP_IMAGE_JPEG::unpackImage(fileBuffer,length,&(this->imageData));
-	// 	this->frames.push_back(this->imageData);
-	// 	currentFrame=0;
+	} else if(GLOP_IMAGE_JPEG::validJPEG(imageFP)) {
+		GLOP_IMAGE_JPEG::unpackImage(imageFP,&(this->imageData));
+		this->frames.push_back(this->imageData);
+		currentFrame=0;
 	} else if(GLOP_IMAGE_BMP::validBMP(imageFP)){
 		GLOP_IMAGE_BMP::unpackImage(imageFP,&(this->imageData));
 		this->frames.push_back(this->imageData);
@@ -161,7 +152,6 @@ bool Image::constructImage_fromFile(FILE *imageFP){
 		printf("Background: %02X %02X %02X %02X\n\n",this->imageData.background.R,this->imageData.background.G,this->imageData.background.B,this->imageData.background.A);
 	#endif
 
-	free(fileBuffer);
 	return true; //success
 }
 

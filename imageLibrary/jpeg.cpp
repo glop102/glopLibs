@@ -1,211 +1,57 @@
 #include "jpeg.h"
 
 namespace GLOP_IMAGE_JPEG{
-
-BinaryTree<int> luminanceDC;
-BinaryTree<int> luminanceAC;
-BinaryTree<int> chrominanceDC;
-BinaryTree<int> chrominanceAC;
 	
-bool validJPEG(unsigned char *filebuffer){
-	if(filebuffer[0] == 0xFF && filebuffer[1] == 0xD8) return true;
+bool validJPEG(FILE* imageFP){
+	fseek(imageFP,0,SEEK_SET); //reset to the beginning
+	if(getc(imageFP) == 0xFF && getc(imageFP) == 0xD8) return true;
 	return false;
 }
 
-void unpackImage(unsigned char* filebuffer,int bufferLength, ImageData* data){
+void unpackImage(FILE* imageFP, ImageData* data){
 	#ifdef JPEG_DEBUG
 		printf("Found Valid JPEG\n");
 	#endif
+	fseek(imageFP, 0L, SEEK_END);
+	unsigned int bufferLength = ftell(imageFP);
+	fseek(imageFP,0,SEEK_SET); //reset to the beginning
 
-	//Temperary stuffs
-	data->pixels=NULL;
-	data->width=0;
-	data->height=0;
-
-	for(int x=0; x<bufferLength; /**/){
-		if(filebuffer[x] != 0xFF){
-			printf("ERROR: not a chunk at byte %d\n\n",x);
-			return;
-		}
-
-		x++;
-		//lets first see if it is on of the fixed-size or non-payload chunks
-		if(0xD8 == filebuffer[x]){
-			printf("Start Of Image\n");
-			x++;
-		}else if(0xDD == filebuffer[x]){
-			printf("Restart Interval ");
-			x++;
-			x+=4;
-		}else if(0xD0 == filebuffer[x] || 0xD1 == filebuffer[x] || 0xD2 == filebuffer[x] || 0xD3 == filebuffer[x] || 0xD4 == filebuffer[x] || 0xD5 == filebuffer[x] || 0xD6 == filebuffer[x] || 0xD7 == filebuffer[x]){
-			printf("Restart Block %d\n",filebuffer[x] & 0b1111);
-		}else if(0xD9 == filebuffer[x]){
-			printf("End Of Image\n\n");
-			return;
-		}else{
-			//nope, we will now assume it is a variable size payload chunk
-			//get the chunk size - this includes the two bytes telling us the size
-			int size=filebuffer[x+1]<<8;
-			size |= filebuffer[x+2];
-
-			if(0xC0 == filebuffer[x]){
-				printf("Start Of Frame (Baseline DCT)\n");
-				x++;
-				x+=2; // get past the size bytes
-
-				printf("\tHeader Size - %d\n",size-2);
-				printf("\tbitdepth : %d\n",filebuffer[x]);
-				data->bitDepth=filebuffer[x];
-				printf("\tHeight: %d\n", (filebuffer[x+1]<<8) | filebuffer[x+2]);
-				printf("\tWidth : %d\n", (filebuffer[x+3]<<8) | filebuffer[x+4]);
-				data->height = (filebuffer[x+1]<<8) | filebuffer[x+2];
-				data->width = (filebuffer[x+3]<<8) | filebuffer[x+4];
-				data->pixels = (Pixel*)malloc(sizeof(Pixel) * data->width * data->height);
-				printf("\tNumber Of channels : %d\n", filebuffer[x+5]);
-				printf("\tCH1 ID: %d\n", filebuffer[x+6]);
-				printf("\tCH1 subSample: %x\n", filebuffer[x+7]);
-				printf("\tCH1 QuantizationTable: %d\n", filebuffer[x+8]);
-				printf("\tCH2 ID: %d\n", filebuffer[x+9]);
-				printf("\tCH2 subSample: %x\n", filebuffer[x+10]);
-				printf("\tCH2 QuantizationTable: %x\n", filebuffer[x+11]);
-				printf("\tCH3 ID: %d\n", filebuffer[x+12]);
-				printf("\tCH3 subSample: %x\n", filebuffer[x+13]);
-				printf("\tCH3 QuantizationTable: %x\n", filebuffer[x+14]);
-
-				x+=size-2; // size of the payload and length bytes
-			}else if(0xC1 == filebuffer[x]){
-				printf("Start Of Frame (Extended sequential DCT)\n");
-				x++;
-
-				x+=size; // size of the payload and length bytes
-			}else if(0xC2 == filebuffer[x]){
-				printf("Start Of Frame (Progressive DCT)\n");
-				x++;
-
-				x+=size; // size of the payload and length bytes
-			}else if(0xC3 == filebuffer[x]){
-				printf("Start Of Frame (Lossless sequential DCT)\n");
-				x++;
-
-				x+=size; // size of the payload and length bytes
-			}else if(0xC4 == filebuffer[x]){
-				printf("Defining Huffman Table\n");
-				x++; // get past the chunk marker
-				x+=2; // get past the bytes that tell us the size
-				size-=2; // size left
-
-				int type = filebuffer[x]; // type of huffman table
-				x++;
-				size--;
-				if(type==0x00){
-					printf("Luminance DC\n");
-					unpackDHT(filebuffer,x,size,&luminanceDC);
-				}else if(type==0x10){
-					printf("Luminance AC\n");
-					unpackDHT(filebuffer,x,size,&luminanceAC);
-				}else if(type==0x01){
-					printf("Chrominance DC\n");
-					unpackDHT(filebuffer,x,size,&chrominanceDC);
-				}else if(type==0x11){
-					printf("Chrominance AC\n");
-					unpackDHT(filebuffer,x,size,&chrominanceAC);
-				}
-
-				x+=size; // size of the payload excluding the bytes telling us the length
-			}else if(0xDB == filebuffer[x]){
-				printf("Defining Quantization Table\n");
-				x++;
-
-				x+=size; // size of the payload and length bytes
-			}else if(0xDA == filebuffer[x]){
-				printf("Start Of Scan\n");
-				x++;
-
-				int numBlocksWide = (data->width/8) + (data->width%8); // rounds up
-				int numBlocksTall = (data->height/8) + (data->height%8); // rounds up
-
-				//What block number we are on as we go through the image
-				int blockCounter = 0;
-
-				//what channel we are on as we are decoding
-				//values are LUMINANCE CHROMINANCE(red) CHROMINANCE(green)
-				// follow these values by incrementing until the top, and then reset
-				int blockChannel = 0;
-
-				while(true){
-					unsigned char temp = filebuffer[x];
-					for(int x=0;x<8;x++){
-						if(blockChannel==0){
-							//luminance
-						}
-					}
-					x++;
-				}
-
-				//x+=size; // size of the payload and length bytes
-			}else if(0xFE == filebuffer[x]){
-				printf("Comment\n");
-				x++;
-				for(int y=2;y<size;y++)
-					printf("%c",filebuffer[x+y]);
-
-				x+=size; // size of the payload and length bytes
-			}else if(0xE0 == (filebuffer[x] & 0xF0)){
-				printf("Application Specific Data\n");
-				x++; // get past the chunk ID
-				x+=2; //get past the chunk size
-
-				if(filebuffer[x]=='J' && filebuffer[x+1]=='F' && filebuffer[x+2]=='I' && filebuffer[x+3]=='F' && filebuffer[x+4]==0){
-					printf("\tJFIF application data\n");
-					printf("\tVersion %d.%d\n",filebuffer[x+5],filebuffer[x+6]);
-					switch(filebuffer[x+7]){
-						case 0:printf("\tThumbnail Style : Pixel\n"); break;
-						case 1:printf("\tThumbnail Style : Inches\n"); break;
-						case 2:printf("\tThumbnail Style : Centimeters\n"); break;
-					}
-					printf("\tHorizontalDensity     : %d\n",(filebuffer[x+ 8]<<8) | filebuffer[x+ 9]);
-					printf("\tVerticalDensity       : %d\n",(filebuffer[x+10]<<8) | filebuffer[x+11]);
-					printf("\tHorizontal Pixel count: %d\n",filebuffer[x+12]); // size here is only for the thumbnail
-					printf("\tVertical Pixel count  : %d\n",filebuffer[x+13]);
-					if(size-2 != filebuffer[x+12]*filebuffer[x+13]*3+14)
-						printf("\twrong size chunk, %d %d\n",size-2,filebuffer[x+12]*filebuffer[x+13]*3+14);
-				}else{
-					printf("\t%x %x %x %x\n", filebuffer[x],filebuffer[x+1],filebuffer[x+2],filebuffer[x+3]);
-				}
-
-				x+=size-2; // size of the payload and length bytes
-			}else {
-				printf("Unknown Chunk Flag 0x%02x\n",filebuffer[x]);
-				x++;
-				x+=size;
-			}
-		}
-	}
-}
-
-void unpackDHT(unsigned char* filebuffer, int x, int size, BinaryTree<int> *tree){
-	int rows[16]; // how many entries are in each row?
-	for(int b=0;b<16;b++){
-		printf("\trow %d - %d entries\n",b,filebuffer[x+b]);
-		rows[b] = filebuffer[x+b];
-	}
-	x+=16;
-	size-=16;
-
-	int code=0;
-	for(int b=0; b<16; b++){ // go through each row
-		for(int c=0;c<rows[b];c++){ // for each row go through every entry
-			printf("\t%x\t%x\n",filebuffer[x+c],code);
-			tree->addNode(code,b+1,filebuffer[x+c]);
-			code++;
-		}
-		x+=rows[b];
-		size-=rows[b];
-		code = code << 1;
+	unsigned char* filebuffer=(unsigned char*)malloc(bufferLength);
+	int written = fread(filebuffer,1,bufferLength,imageFP);
+	if(written != bufferLength){
+		printf("Error - could not read all the file bytes\n");
 	}
 
-	tree->reset(); // get it ready to be used
-	//tree->sequence(0x1fe,9);
+	int jpegSubsamp; // will be given the subsampling that was used to encode the jpeg
+	unsigned char *buffer;
+
+	//get setup
+	tjhandle _jpegDecompressor = tjInitDecompress();
+	//retrieve the basic info about the file
+	tjDecompressHeader2(_jpegDecompressor, filebuffer, bufferLength, (int*)&(data->width), (int*)&(data->height), &jpegSubsamp);
+	printf("retrieved the file info\n");
+	printf("\t%u x %u\n",data->width,data->height);
+	buffer = (unsigned char*)malloc(data->width*data->height*3); // will contain the decompressed image
+	printf("about to decompress\n");
+	//do the acctuall decompression
+	tjDecompress2(_jpegDecompressor, filebuffer, bufferLength, buffer, data->width, 0/*pitch*/, data->height, TJPF_RGB, TJFLAG_FASTDCT);
+	printf("decoded the pixels\n");
+
+	tjDestroy(_jpegDecompressor);
+	free(filebuffer);
+
+	data->pixels = (Pixel*)malloc(data->height * data->width * sizeof(Pixel));
+	data->bitDepth = 8;
+	data->pixelType = RGB;
+	for(int y=0; y<data->height; y++){
+		for(int x=0; x<data->width; x++){
+			Pixel &pix = data->pixels[y * data->width + x];
+			pix.R = buffer[y * data->width * 3 + x*3 + 0];
+			pix.G = buffer[y * data->width * 3 + x*3 + 1];
+			pix.B = buffer[y * data->width * 3 + x*3 + 2];
+			pix.A = 255;
+		}
+	}
 }
 	
 } // GLOP_IMAGE_JPEG

@@ -6,8 +6,8 @@
 #include <string.h>
 #include <stdint.h>
 #include <math.h>
+#include <turbojpeg.h>
 #include "image_globals.h"
-#include "../binaryTree/binaryTree.h"
 
 namespace GLOP_IMAGE_JPEG{
 
@@ -15,10 +15,12 @@ namespace GLOP_IMAGE_JPEG{
 //   JPEG IMAGE DECODING
 //============================================================================
 // https://www.w3.org/Graphics/JPEG/itu-t81.pdf
+//
+// how to use turbojpeg api
+// http://stackoverflow.com/questions/9094691/examples-or-tutorials-of-using-libjpeg-turbos-turbojpeg
 
-bool validJPEG(unsigned char *filebuffer);
-void unpackImage(unsigned char* filebuffer,int bufferLength, ImageData* data);
-void unpackDHT(unsigned char* filebuffer, int x, int size, BinaryTree<int> *tree);
+bool validJPEG(FILE *imageFP);
+void unpackImage(FILE* imageFP, ImageData* data);
 
 } // GLOP_IMAGE_JPEG
 
