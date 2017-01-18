@@ -56,7 +56,7 @@ void unpackImage(FILE* imageFP,struct ImageData *data){
 	png_color_16p image_background;
 	if (png_get_bKGD(png_ptr, info_ptr, &image_background)){
 		//there was a valid background chunk
-		printf("Background %u %u %u\n",image_background->red,image_background->green,image_background->blue);
+		// printf("Background %u %u %u\n",image_background->red,image_background->green,image_background->blue);
 		data->background.R = image_background->red;
 		data->background.G = image_background->green;
 		data->background.B = image_background->blue;

@@ -80,4 +80,14 @@ typedef enum{
 typedef enum{ // empty because i can't thing of any useful options
 } SAVE_OPTIONS_BMP;
 
+typedef enum{ // empty because i can't thing of any useful options
+	JPG_NOTHING     = 0b00000000,
+	QUALITY_BEST    = 0b00000001,
+	QUALITY_DEFAULT = 0b00000010,
+	QUALITY_FINE    = 0b00000100,
+	QUALITY_OKAY    = 0b00001000,
+	QUALITY_BAD     = 0b00010000,
+	QUALITY_AWEFUL  = 0b00100000
+} SAVE_OPTIONS_JPG;
+
 #endif

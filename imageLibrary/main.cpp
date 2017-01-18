@@ -45,6 +45,7 @@ int main(int argc, char **args){
 
 	//Image image(imageFP);
 	Image image(args[1]);
+	printf("decoded image :: %s\n",args[1]);
 
 	//=======================================================
 	// randomBandShift(image,16,-0.2);
@@ -56,9 +57,14 @@ int main(int argc, char **args){
 	// pairs["TestComment2"].push_back("With Test Text");
 	// pairs["TestComment3"].push_back("With Test Text");
 
-	printf("Saving image..\n");
+	// printf("Saving image..\n");
 	if(argc==3)image.saveImage(args[2],PNG,PNG_NOTHING);
-	else image.saveImage("temp.png",PNG,PNG_NOTHING);
+	else{
+		// image.saveImage("temp.png",PNG,PNG_NOTHING);
+		// printf("encoded png\n");
+		image.saveImage("temp.jpg",JPG,JPG_NOTHING);
+		// printf("encoded jpg\n");
+	}
 
 	return 0;
 }

@@ -208,6 +208,8 @@ void Image::saveImage(FILE* imageFP,SAVE_TYPE saveType, uint16_t saveOptions){
 		GLOP_IMAGE_PNG::packImage(imageFP,&(this->imageData), (SAVE_OPTIONS_PNG)saveOptions);
 	}else if(saveType==SAVE_TYPE::BMP){
 		GLOP_IMAGE_BMP::packImage(imageFP,&(this->imageData), (SAVE_OPTIONS_BMP)saveOptions);
+	}else if(saveType==SAVE_TYPE::JPG){
+		GLOP_IMAGE_JPEG::packImage(imageFP,&(this->imageData), (SAVE_OPTIONS_JPG)saveOptions);
 	}
 }
 int Image::getBitDepth(){

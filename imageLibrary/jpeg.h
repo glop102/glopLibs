@@ -21,6 +21,7 @@ namespace GLOP_IMAGE_JPEG{
 
 bool validJPEG(FILE *imageFP);
 void unpackImage(FILE* imageFP, ImageData* data);
+void packImage(FILE* imageFP,ImageData* data, SAVE_OPTIONS_JPG saveOptions);
 
 } // GLOP_IMAGE_JPEG
 
