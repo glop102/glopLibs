@@ -21,5 +21,6 @@ build/bmp.o : bmp.cpp bmp.h
 clean :
 	rm -f *.o
 	rm -f build/*.o
-	rm -f main
-	rm -f image.a
+	rm -f main # text executable
+	rm -f image.a # the library file
+	rm -f temp* # known temp files
