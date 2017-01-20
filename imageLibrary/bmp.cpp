@@ -14,8 +14,8 @@ namespace GLOP_IMAGE_BMP{
 	bool validBMP(FILE *imageFP){
 		fseek(imageFP,0,SEEK_SET); //reset to the beginning
 		unsigned char buff[15];
-		fread(buff,1,15,imageFP);
-		if(buff[0] != 'B' || buff[1]!='M')
+		int bytes_read = fread(buff,1,15,imageFP);
+		if(buff[0] != 'B' || buff[1]!='M' || bytes_read!=15)
 			return false;
 
 		//now we check if at byte 0x14 if it is one of the known good values
@@ -40,7 +40,12 @@ namespace GLOP_IMAGE_BMP{
 	void unpackImage(FILE *imageFP, ImageData* data){
 		fseek(imageFP,10,SEEK_SET);
 		unsigned char buff[124];
-		fread(buff,1,5,imageFP);
+		int bytes_read = fread(buff,1,5,imageFP);
+		if(bytes_read != 5){
+			data->width=0;
+			data->height=0;
+			return;
+		}
 
 		distToPixels = (buff[0]<<(8*0)) | (buff[1]<<(8*1)) | (buff[2]<<(8*2)) | ((buff[3])<<(8*3));
 		headerSize = buff[4];
@@ -63,7 +68,12 @@ namespace GLOP_IMAGE_BMP{
 			case  40: // Windows NT 3.1x
 			case 124: // Windows NT 5.0 , Win98
 				fseek(imageFP,14,SEEK_SET);
-				fread(buff,1,124,imageFP);
+				bytes_read = fread(buff,1,124,imageFP);
+				if(bytes_read != 124){
+					data->width=0;
+					data->height=0;
+					return;
+				}
 				x+=4; // get past the bytes that say how large the header is
 
 				data->width = (buff[x+0]<<(8*0)) | (buff[x+1]<<(8*1)) | (buff[x+2]<<(8*2)) | (buff[x+3]<<(8*3));
@@ -150,7 +160,14 @@ namespace GLOP_IMAGE_BMP{
 				colorTable.clear(); // lets reset this baby and start fresh for the new image
 				colorTable.reserve(colorTableLength);
 				while(ftell(imageFP)<distToPixels){
-					fread(buff,1,4,imageFP);
+					bytes_read = fread(buff,1,4,imageFP);
+					if(bytes_read != 4){
+						data->width=0;
+						data->height=0;
+						free(data->pixels);
+						return;
+					}
+
 					Pixel temp;
 					temp.B=buff[0]; // colors are in the table as BGR
 					temp.G=buff[1];
@@ -205,7 +222,13 @@ namespace GLOP_IMAGE_BMP{
 		#endif
 
 		unsigned char filebuffer[rowWidth*data->height];
-		fread(filebuffer,1,rowWidth*data->height,imageFP);
+		int bytes_read = fread(filebuffer,1,rowWidth*data->height,imageFP);
+		if(bytes_read != rowWidth*data->height){
+			data->width=0;
+			data->height=0;
+			free(data->pixels);
+			return;
+		}
 		for(unsigned int row=0;row<data->height;row++){
 			for(unsigned int y=0;y<data->width;y++){
 				Pixel *pix;

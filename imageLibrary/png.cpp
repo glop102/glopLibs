@@ -47,7 +47,7 @@ void unpackImage(FILE* imageFP,struct ImageData *data){
 	fseek(imageFP,0,SEEK_SET); //reset to the beginning
 	png_init_io(png_ptr,imageFP);
 
-	png_read_png(png_ptr, info_ptr,  PNG_TRANSFORM_GRAY_TO_RGB | PNG_TRANSFORM_PACKING | PNG_TRANSFORM_EXPAND, NULL); // read in the file and decode ALL the info!! scale everything to 8-bit RGB or 16-bit RGB
+	png_read_png(png_ptr, info_ptr, PNG_TRANSFORM_SCALE_16 | PNG_TRANSFORM_GRAY_TO_RGB | PNG_TRANSFORM_PACKING | PNG_TRANSFORM_EXPAND, NULL); // read in the file and decode ALL the info!! scale everything to 8-bit RGB or 16-bit RGB
 
 	data->width = png_get_image_width(png_ptr,info_ptr);
 	data->height = png_get_image_height(png_ptr,info_ptr);
@@ -74,7 +74,7 @@ void unpackImage(FILE* imageFP,struct ImageData *data){
 	unsigned char** row_pointers; // array or pointers to the rows of pixel data
 	row_pointers = png_get_rows(png_ptr, info_ptr);
 
-	if(data->bitDepth == 8){
+	//if(data->bitDepth == 8){
 		for(unsigned long y=0; y<data->height; y++){
 			for(unsigned long x=0; x<data->width; x++){
 				Pixel &pix = data->pixels[y*data->width +x];
@@ -91,30 +91,30 @@ void unpackImage(FILE* imageFP,struct ImageData *data){
 				}
 			}
 		}
-	} else if(data->bitDepth == 16){
-		for(unsigned long y=0; y<data->height; y++){
-			for(unsigned long x=0; x<data->width; x++){
-				Pixel &pix = data->pixels[y*data->width +x];
-				if(data->pixelType == RGB){
-					pix.R = row_pointers[y][6*x + 0]<<8 | row_pointers[y][6*x + 1];
-					pix.G = row_pointers[y][6*x + 2]<<8 | row_pointers[y][6*x + 3];
-					pix.B = row_pointers[y][6*x + 4]<<8 | row_pointers[y][6*x + 5];
-					pix.A = 0xFFFF;
-				}else{
-					pix.R = row_pointers[y][8*x + 0]<<8 | row_pointers[y][8*x + 1];
-					pix.G = row_pointers[y][8*x + 2]<<8 | row_pointers[y][8*x + 3];
-					pix.B = row_pointers[y][8*x + 4]<<8 | row_pointers[y][8*x + 5];
-					pix.A = row_pointers[y][8*x + 6]<<8 | row_pointers[y][8*x + 7];
-				}
-			}
-		}
-	}else{
-		printf("Error: bitdepth not set to 8 or 16 - is %d\n",data->bitDepth);
-		png_destroy_read_struct(&png_ptr,&info_ptr, (png_infopp)NULL);
-		data->width=0;
-		data->height=0;
-		return;
-	}
+	//} else if(data->bitDepth == 16){
+	//	for(unsigned long y=0; y<data->height; y++){
+	//		for(unsigned long x=0; x<data->width; x++){
+	//			Pixel &pix = data->pixels[y*data->width +x];
+	//			if(data->pixelType == RGB){
+	//				pix.R = row_pointers[y][6*x + 0]<<8 | row_pointers[y][6*x + 1];
+	//				pix.G = row_pointers[y][6*x + 2]<<8 | row_pointers[y][6*x + 3];
+	//				pix.B = row_pointers[y][6*x + 4]<<8 | row_pointers[y][6*x + 5];
+	//				pix.A = 0xFFFF;
+	//			}else{
+	//				pix.R = row_pointers[y][8*x + 0]<<8 | row_pointers[y][8*x + 1];
+	//				pix.G = row_pointers[y][8*x + 2]<<8 | row_pointers[y][8*x + 3];
+	//				pix.B = row_pointers[y][8*x + 4]<<8 | row_pointers[y][8*x + 5];
+	//				pix.A = row_pointers[y][8*x + 6]<<8 | row_pointers[y][8*x + 7];
+	//			}
+	//		}
+	//	}
+	//}else{
+	//	printf("Error: bitdepth not set to 8 or 16 - is %d\n",data->bitDepth);
+	//	png_destroy_read_struct(&png_ptr,&info_ptr, (png_infopp)NULL);
+	//	data->width=0;
+	//	data->height=0;
+	//	return;
+	//}
 
 	png_destroy_read_struct(&png_ptr,&info_ptr, (png_infopp)NULL);
 	return;

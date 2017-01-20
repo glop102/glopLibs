@@ -17,10 +17,10 @@ typedef enum {
 } PixelType;
 
 struct Pixel{
-	uint16_t R; //RED
-	uint16_t G; //GREEN
-	uint16_t B; //BLUE
-	uint16_t A; //ALPHA
+	uint8_t R; //RED
+	uint8_t G; //GREEN
+	uint8_t B; //BLUE
+	uint8_t A; //ALPHA
 	bool operator==(const Pixel& other)const{
 		bool temp=true; // assume true first
 		temp &= other.R==this->R;
