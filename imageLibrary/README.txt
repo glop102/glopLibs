@@ -6,7 +6,7 @@ Goal
  - Minimal computational overhead for pixel access
 
 Building
- - make clean
+ - make full-clean
  - make
 
 Current Support

@@ -6,7 +6,7 @@
 #include <string.h>
 #include <stdint.h>
 #include <math.h>
-#include <turbojpeg.h>
+#include "libjpeg-turbo-1.5.1/turbojpeg.h"
 #include "image_globals.h"
 
 namespace GLOP_IMAGE_JPEG{
