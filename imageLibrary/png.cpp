@@ -45,8 +45,11 @@ void unpackImage(FILE* imageFP,struct ImageData *data){
 	}
 
 	png_init_io(png_ptr,imageFP);
-
-	png_read_png(png_ptr, info_ptr, PNG_TRANSFORM_SCALE_16 | PNG_TRANSFORM_GRAY_TO_RGB | PNG_TRANSFORM_PACKING | PNG_TRANSFORM_EXPAND, NULL); // read in the file and decode ALL the info!! scale everything to 8-bit RGB or 16-bit RGB
+	#if PNG_TRANSFORM_STRIP_16 < 3
+		png_read_png(png_ptr, info_ptr, PNG_TRANSFORM_STRIP_16 | PNG_TRANSFORM_GRAY_TO_RGB | PNG_TRANSFORM_PACKING | PNG_TRANSFORM_EXPAND, NULL); // read in the file and decode ALL the info!! scale everything to 8-bit RGB or 16-bit RGB
+	#else
+		png_read_png(png_ptr, info_ptr, PNG_TRANSFORM_SCALE_16 | PNG_TRANSFORM_GRAY_TO_RGB | PNG_TRANSFORM_PACKING | PNG_TRANSFORM_EXPAND, NULL); // read in the file and decode ALL the info!! scale everything to 8-bit RGB or 16-bit RGB
+	#endif
 
 	data->width = png_get_image_width(png_ptr,info_ptr);
 	data->height = png_get_image_height(png_ptr,info_ptr);
@@ -173,9 +176,11 @@ void packImage(FILE* imageFP,struct ImageData *data, SAVE_OPTIONS_PNG saveOption
 				text_ptr[tempNum].compression = PNG_TEXT_COMPRESSION_NONE;
 				text_ptr[tempNum].key = (char*)mp->first.c_str();
 				text_ptr[tempNum].text = (char*)mp->second[x].c_str();
-				text_ptr[tempNum].itxt_length = 0;
+				#if PNG_TRANSFORM_STRIP_16 >= 3
+					text_ptr[tempNum].itxt_length = 0;
+					text_ptr[tempNum].lang = NULL;
+				#endif
 				text_ptr[tempNum].text_length = mp->second[x].length();
-				text_ptr[tempNum].lang = NULL;
 				tempNum++;
 			}
 		}
