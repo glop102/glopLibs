@@ -12,13 +12,19 @@ namespace GLOP_IMAGE_BMP{
 	std::vector<Pixel> colorTable;
 
 	bool validBMP(FILE *imageFP){
-		fseek(imageFP,0,SEEK_SET); //reset to the beginning
+		// fseek(imageFP,0,SEEK_SET); //reset to the beginning
 		unsigned char buff[15];
+		fseek(imageFP,-1,SEEK_CUR); //some weird bug making it start reading 1 byte after the begining
 		int bytes_read = fread(buff,1,15,imageFP);
-		if(buff[0] != 'B' || buff[1]!='M' || bytes_read!=15)
+		fseek(imageFP,-15,SEEK_CUR); //reset to the beginning
+		if(buff[0] != 'B' || buff[1]!='M' || bytes_read!=15){
+			printf("dbnsaui\n");
+			printf("%x %x %x %x %x\n",buff[0],buff[1],buff[2],buff[3],buff[4]);
 			return false;
+		}
 
-		//now we check if at byte 0x14 if it is one of the known good values
+
+		//now we check if at byte 14 if it is one of the known good values
 		//this byte is the size of the header and is different for different versions
 		//most ofter it is 128 as that size is for the newest format
 		switch(buff[14]){
@@ -131,6 +137,8 @@ namespace GLOP_IMAGE_BMP{
 						printf("Unsuported Compression Method\n");
 						data->height=0;
 						data->width=0;
+						free(data->pixels);
+						data->pixels = NULL;
 						return;
 					case 0: // no compression
 						break;
@@ -138,6 +146,8 @@ namespace GLOP_IMAGE_BMP{
 						printf("Unknown Compression Method\n");
 						data->height=0;
 						data->width=0;
+						free(data->pixels);
+						data->pixels = NULL;
 						return;
 				}
 
@@ -162,9 +172,9 @@ namespace GLOP_IMAGE_BMP{
 				while(ftell(imageFP)<distToPixels){
 					bytes_read = fread(buff,1,4,imageFP);
 					if(bytes_read != 4){
-						data->width=0;
-						data->height=0;
-						free(data->pixels);
+						// data->width=0;
+						// data->height=0;
+						// free(data->pixels);
 						return;
 					}
 

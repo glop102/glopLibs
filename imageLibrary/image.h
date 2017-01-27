@@ -72,9 +72,7 @@ public:
 	//maintaing the defaults for move operations
 	Image() = default;
 	Image(const Image &) = default;
-	Image(Image &&) = default;
 	Image& operator=(const Image&) = default;
-	Image& operator=(Image&&) = default;
 
 	uint16_t getPixel(unsigned long width,unsigned long height,int channel);
 	std::vector<std::string> getTextValueS(std::string key);
@@ -86,6 +84,8 @@ public:
 	Pixel* operator[](unsigned int y);
 	int getBitDepth();
 	void setBitDepth(int);
+	PixelType getPixelType();
+	void setPixelType(PixelType type);
 
 	int numberOfFrames();
 	void gotoFrame(int frame);

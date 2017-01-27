@@ -201,12 +201,16 @@ void Image::saveImage(FILE* imageFP,SAVE_TYPE saveType, uint16_t saveOptions){
 		return; // nope
 	}
 	if(saveType==SAVE_TYPE::PNG){
+		if(this->imageData.pixelType == GRAY){
+			this->setPixelType(RGB);
+		}
 		if(this->imageData.pixelType != RGB && this->imageData.pixelType != RGB_ALPHA){
 			printf("Error, only RGB and RGB_ALPHA images are currently supported\n");
 			return;
 		}
 		GLOP_IMAGE_PNG::packImage(imageFP,&(this->imageData), (SAVE_OPTIONS_PNG)saveOptions);
 	}else if(saveType==SAVE_TYPE::BMP){
+		this->setPixelType(RGB);
 		GLOP_IMAGE_BMP::packImage(imageFP,&(this->imageData), (SAVE_OPTIONS_BMP)saveOptions);
 	}else if(saveType==SAVE_TYPE::JPG){
 		GLOP_IMAGE_JPEG::packImage(imageFP,&(this->imageData), (SAVE_OPTIONS_JPG)saveOptions);
@@ -262,6 +266,24 @@ void Image::setBitDepth(int val){
 		//printf("%x\n%x",this->imageData.pixels,this->frames[0].pixels);
 		printf("\n");
 	#endif
+}
+PixelType Image::getPixelType(){
+	return imageData.pixelType;
+}
+void Image::setPixelType(PixelType type){
+	if(type == imageData.pixelType)
+		return;
+	if(imageData.pixelType == GRAY && type == RGB){
+		for(int y=0; y<imageData.height; y++){
+			for(int x=0; x<imageData.width; x++){
+				Pixel &pix = imageData.pixels[x + (y * imageData.width)];
+				pix.R = pix.G;
+				pix.B = pix.G;
+				pix.A = 255;
+			}
+		}
+		imageData.pixelType = RGB;
+	}
 }
 
 std::map<std::string,std::vector<std::string> >& Image::getTextMappings(){

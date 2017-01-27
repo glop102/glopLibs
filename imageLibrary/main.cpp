@@ -60,9 +60,9 @@ int main(int argc, char **args){
 	// printf("Saving image..\n");
 	if(argc==3)image.saveImage(args[2],PNG,PNG_NOTHING);
 	else{
-		// image.saveImage("temp.png",PNG,PNG_NOTHING);
+		image.saveImage("temp.png",PNG,PNG_NOTHING);
 		// printf("encoded png\n");
-		image.saveImage("temp.jpg",JPG,JPG_NOTHING);
+		image.saveImage("temp.jpg",JPG,JPG_NOTHING | QUALITY_BEST);
 		// printf("encoded jpg\n");
 	}
 

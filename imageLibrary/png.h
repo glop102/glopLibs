@@ -4,8 +4,8 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
-#include "libpng-1.6.28/png.h"
-#include "zlib-1.2.11/zlib.h"
+#include <png.h>
+#include <zlib.h>
 #include "image_globals.h"
 
 namespace GLOP_IMAGE_PNG{

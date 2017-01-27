@@ -11,8 +11,8 @@ bool validPNG(FILE* imageFP){
 	//we check here that it is valid
 	unsigned char temp[]={0,0,0,0,0,0,0,0};
 	unsigned char header[]={0x89,'P','N','G','\r','\n',0x1A,'\n'};
-	fseek(imageFP,0,SEEK_SET); //reset to the beginning
 	long read = fread(temp,1,8,imageFP);
+	fseek(imageFP,-8,SEEK_CUR); //reset to the beginning
 	if(read!=8)
 		return false;
 
@@ -44,7 +44,6 @@ void unpackImage(FILE* imageFP,struct ImageData *data){
 		return;
 	}
 
-	fseek(imageFP,0,SEEK_SET); //reset to the beginning
 	png_init_io(png_ptr,imageFP);
 
 	png_read_png(png_ptr, info_ptr, PNG_TRANSFORM_SCALE_16 | PNG_TRANSFORM_GRAY_TO_RGB | PNG_TRANSFORM_PACKING | PNG_TRANSFORM_EXPAND, NULL); // read in the file and decode ALL the info!! scale everything to 8-bit RGB or 16-bit RGB
@@ -138,7 +137,6 @@ void packImage(FILE* imageFP,struct ImageData *data, SAVE_OPTIONS_PNG saveOption
 		return;
 	}
 
-	fseek(imageFP,0,SEEK_SET); //reset to the beginning
 	png_init_io(png_ptr,imageFP);
 
 	if(saveOptions & SAVE_OPTIONS_PNG::MAX_COMPRESSION){

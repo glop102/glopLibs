@@ -1,18 +1,21 @@
-CFLAGS = -std=c++11 -O2
+CFLAGS = -std=c++11 -O2 -lpng -ljpeg
+
+all: image.a libimage.so main
+.PHONY:all
 
 main : main.cpp image.a
-	g++ main.cpp $(CFLAGS) image.a -o main
+	g++ main.cpp $(CFLAGS) -L. -limage -Wl,-rpath=. -o main
 
 build :
 	- mkdir build #make a place to put the .o files
 
 libimage.so: image.a
-	g++ -shared -Wl,-soname,libimage.so -o libimage.so build/*.o
+	g++ -shared -Wl,-soname,libimage.so -o libimage.so build/*.o -lpng -ljpeg
 
-image.a : build build/image.o build/png.o build/jpeg.o build/bmp.o libjpeg_turbo libpng zlib
-	ar rvs image.a build/*.o build/*/*.o
+image.a : build build/image.o build/png.o build/jpeg.o build/bmp.o
+	ar rvs image.a build/*.o
 
-build/image.o :  build image.cpp build/png.o build/jpeg.o build/bmp.o
+build/image.o :  build image.cpp image.h
 	g++ $(CFLAGS) -fPIC -c image.cpp -o build/image.o
 build/png.o : png.cpp png.h
 	g++ $(CFLAGS) -fPIC -c png.cpp -o build/png.o
@@ -21,6 +24,10 @@ build/jpeg.o : jpeg.cpp jpeg.h
 build/bmp.o : bmp.cpp bmp.h
 	g++ $(CFLAGS) -fPIC -c bmp.cpp -o build/bmp.o
 
+
+#============================================================================
+# base libraries that i was using
+#============================================================================
 libjpeg_turbo: libjpeg-turbo-1.5.1/.libs/libturbojpeg.a
 	-mkdir build/jpeg
 	cd build/jpeg; ar -x ../../libjpeg-turbo-1.5.1/.libs/libturbojpeg.a
