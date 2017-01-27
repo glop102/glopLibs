@@ -1,4 +1,4 @@
-CFLAGS = -std=c++11 -O2 -lpng -ljpeg
+CFLAGS = -std=c++0x -O2 -lpng -ljpeg
 
 all: image.a libimage.so main
 .PHONY:all
