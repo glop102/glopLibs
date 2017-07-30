@@ -1,4 +1,4 @@
-#include "glopParser.h"
+#include "glopConfig.h"
 
 /*
 The Magic Sauce
@@ -29,7 +29,7 @@ value tokens
  {   error - cant open an unnamed group
 */
 
-namespace ConfigParser{
+namespace GlopConfig{
 
 char getKey(FILE* fd, std::string& key){
 	key = "";

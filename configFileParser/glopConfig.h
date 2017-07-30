@@ -1,5 +1,5 @@
-#ifndef GLOP_CONFIG_PARSER
-#define GLOP_CONFIG_PARSER
+#ifndef GLOP_CONFIG
+#define GLOP_CONFIG
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -7,7 +7,7 @@
 #include <map>
 
 
-namespace ConfigParser{
+namespace GlopConfig{
 
 	struct Settings{
 		std::map<std::string,Settings> groups;
@@ -16,6 +16,6 @@ namespace ConfigParser{
 
 	Settings ParseFile(std::string filename);
 
-}; // namespace ConfigParser
+}; // namespace GlopConfig
 
 #endif

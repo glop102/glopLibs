@@ -1,17 +1,17 @@
 .PHONY: all
 all: test_prog
 .PHONY: shared
-shared:glopParser.so
+shared:glopConfig.so
 
-glopParser.so: glopParser.h glopParser.cpp
-	g++ -c -fpic glopParser.h glopParser.cpp -o glopParser.o
-	g++ -shared glopParser.o -o libglopParser.so
+glopConfig.so: glopConfig.h glopConfig.cpp
+	g++ -c -fpic glopConfig.h glopConfig.cpp -o glopConfig.o
+	g++ -shared glopConfig.o -o libglopParser.so
 
-glopParser.o: glopParser.h glopParser.cpp
-	g++ -c glopParser.cpp
+glopConfig.o: glopConfig.h glopConfig.cpp
+	g++ -c glopConfig.cpp
 
-test_prog: glopParser.o test_prog.cpp
-	g++ test_prog.cpp glopParser.o -o test_prog --std=c++11
+test_prog: glopConfig.o test_prog.cpp
+	g++ test_prog.cpp glopConfig.o -o test_prog --std=c++11
 
 .PHONY: clean
 clean:

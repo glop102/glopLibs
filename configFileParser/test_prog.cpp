@@ -1,8 +1,8 @@
 #include <string>
 #include <iterator>
-#include "glopParser.h"
+#include "glopConfig.h"
 
-using namespace ConfigParser;
+using namespace GlopConfig;
 
 void printSettings(Settings& s,std::string prefix){
 	{
