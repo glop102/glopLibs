@@ -46,6 +46,20 @@ void printSettings(Settings& s,std::string prefix){
 
 Is a simple parser to be used in other projects. It only handles the simple config file type above, does not parse the values for you (everthing is saved as a string), and has no error checking for you. You have to implement your own safeguards for data in the config file if you are doing something like getting an int from a field (you have to check that it is an int before converting, etc).
 
+```c++
+#include <string>
+#include "glopConfig.h"
+
+using namespace GlopConfig;
+
+int main(void){
+	Settings s = ParseFile("test_settings.conf");
+	printf("%s\n",s.values["setting 2"].c_str());
+	printf("%s\n",s.groups["group1"].values["setting 3"].c_str());
+	return 0;
+}
+```
+
 ## SaveToFile
 
-Is a simple writer to be used in other projects. It writes the struct out to the given filename for later use of being read in.
+Is a simple writer to be used in other projects. It writes the struct out to the given filename for later use.

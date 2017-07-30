@@ -1,5 +1,4 @@
 #include <string>
-#include <iterator>
 #include "glopConfig.h"
 
 using namespace GlopConfig;
@@ -25,5 +24,8 @@ void printSettings(Settings& s,std::string prefix){
 int main(void){
 	Settings s = ParseFile("test_settings.conf");
 	printSettings(s,"");
+	printf("\n");
+	printf("%s\n",s.values["setting 2"].c_str());
+	printf("%s\n",s.groups["group1"].values["setting 3"].c_str());
 	return 0;
 }
