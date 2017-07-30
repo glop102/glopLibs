@@ -27,5 +27,6 @@ int main(void){
 	printf("\n");
 	printf("%s\n",s.values["setting 2"].c_str());
 	printf("%s\n",s.groups["group1"].values["setting 3"].c_str());
+	SaveToFile("test_settings_written.conf",s);
 	return 0;
 }

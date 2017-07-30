@@ -158,4 +158,34 @@ Settings ParseFile(std::string filename){
 	return settings;
 }
 
+void SaveToFile_Recurse(FILE* fd, Settings& s,std::string prefix){
+	{ // write the current level key-value pairs first
+		std::map<std::string,std::string>::iterator itt = s.values.begin();
+		while(itt!=s.values.end()){
+			fprintf(fd,"%s%s = %s\n",prefix.c_str(),itt->first.c_str(),itt->second.c_str());
+			++itt;
+		}
+	}
+	{ // recurse down into the groups
+		std::map<std::string,Settings>::iterator itt = s.groups.begin();
+		while(itt!=s.groups.end()){
+			fprintf(fd,"%s%s {\n",prefix.c_str(),itt->first.c_str()); // header of the group
+			SaveToFile_Recurse(fd,itt->second,prefix+"    ");         // all the data the group itself contains
+			fprintf(fd, "%s}\n", prefix.c_str());                     // the closing bracket of the group
+			++itt;
+		}
+	}
+}
+
+void SaveToFile(std::string filename,Settings& settings){
+	FILE* fd = fopen(filename.c_str(),"w");
+	if(fd == NULL)
+		return; // couldn't open file
+
+	//now recurse down the groups
+	SaveToFile_Recurse(fd,settings,"");
+
+	fclose(fd);
+}
+
 }; // namespace ConfigParser

@@ -16,6 +16,7 @@ namespace GlopConfig{
 	};
 
 	Settings ParseFile(std::string filename);
+	void SaveToFile(std::string filename,Settings& settings);
 
 }; // namespace GlopConfig
 
