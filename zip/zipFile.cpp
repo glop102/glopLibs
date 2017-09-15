@@ -3,8 +3,26 @@
 
 #include "zipFile.h"
 
+/*
+main reference https://en.wikipedia.org/wiki/Zip_(file_format)
+full reference https://www.loc.gov/preservation/digital/formats/digformatspecs/APPNOTE%2820120901%29_Version_6.3.3.txt
+
+NOTE: The file stores all number as little-endian aka with lower order bytes first
+
+the format is in two main sections, each having two types of headers
+Central-Directory - confusingly at the end of the file
+	headers
+		main file entries
+		end of central directory header
+Main Files Section - at the beginning of the file
+	Each file has the headers
+		local file header - has info such as filesize
+		optional extra header - might not be there, might have different sizes
+
+*/
+
 unsigned long crc_table[256]; //Table of CRCs of all 8-bit messages
-int crc_table_computed = 0; //Flag: has the table been computed? Initially false
+bool crc_table_computed = false; //Flag: has the table been computed? Initially false
 uint32_t crc_code(ZipEntry& entry); //gives back the crc of the file
 
 ZipFile::ZipFile(){
@@ -585,7 +603,7 @@ void make_crc_table(void) {
 		}
 		crc_table[n] = c;
 	}
-	crc_table_computed = 1;
+	crc_table_computed = true;
 }
 
 
