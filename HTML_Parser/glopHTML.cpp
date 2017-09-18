@@ -3,9 +3,6 @@
 GlopHTML::GlopHTML(){
 	headNode = NULL;
 	currentNode = NULL;
-
-	TAG test;
-	test.classname="hello";
 }
 GlopHTML::~GlopHTML(){
 	clear();
@@ -26,6 +23,23 @@ void GlopHTML::parseFile(FILE* fd){
 		currentNode = NULL;
 		return;
 	}
+	string html;
+	char buf[1000];
+
+	while(!feof(fd)){
+		fgets(buf,1000,fd);
+		html+=buf;
+	}
+
+	parseHTML(html);
+}
+void GlopHTML::parseHTML(string html){
+	GlopHTML_consumer con;
+	con.parseHTML(html);
+	headNode = con.getHead();
+	currentNode = headNode;
+	ids=con.getIds();
+	classes=con.getClasses();
 }
 
 /******************************/
@@ -113,15 +127,18 @@ void GlopHTML::deleteCurrentTag(){
 	currentNode=next;
 }
 void GlopHTML::deleteCurrentTag(TAG* tag){
+	if(tag==NULL)return;
 	//recursivly remove the children first
 	while(tag->children.size() > 0)
 		deleteCurrentTag(tag->children[0]);
 
 	//find ourselves in our parents list and remove ourselves
-	for(int x=0; x<tag->parent->children.size(); x++){
-		if(tag->parent->children[x]==tag){
-			tag->parent->children.erase(tag->parent->children.begin()+x);
-			break;
+	if(tag->parent != NULL){
+		for(int x=0; x<tag->parent->children.size(); x++){
+			if(tag->parent->children[x]==tag){
+				tag->parent->children.erase(tag->parent->children.begin()+x);
+				break;
+			}
 		}
 	}
 		
@@ -204,13 +221,13 @@ void GlopHTML::moveToId(std::string id){
 		currentNode=ids[id];
 	}
 }
-void GlopHTML::goToCurrentChild(int index){
+void GlopHTML::moveToCurrentChild(int index){
 	if(currentNode==NULL)return;
 	currentNode = currentNode->children[index];
 }
-void GlopHTML::goToParent(){
+void GlopHTML::moveToParent(){
 	if(currentNode!=NULL){
-		currentNode->parent;
+		currentNode=currentNode->parent;
 	}
 }
 
@@ -237,10 +254,49 @@ GlopHTML_consumer::GlopHTML_consumer(){
 	position=0;
 }
 void GlopHTML_consumer::parseHTML(string HHHHH){
+	head=NULL;
+	curt=NULL;
 	html = HHHHH;
 	position=0;
-	//do something more useful
+
+	parseHTML_recursive();
 }
+TAG* GlopHTML_consumer::getHead(){
+	return head;
+}
+map<string,TAG*> GlopHTML_consumer::getIds(){
+	return ids;
+}
+map<string,vector<TAG*> > GlopHTML_consumer::getClasses(){
+	return classes;
+}
+bool GlopHTML_consumer::parseHTML_recursive(){
+	string curtToken;
+	TAG* tempTag;
+
+	//try to find a valid tag
+	curtToken = getNextTagToken();
+	if(curtToken=="")return true;
+	if(curtToken[0]=='/') return true;
+
+	//try to make a valid tag
+	tempTag = parseTagToken(curtToken);
+	if(tempTag==NULL)return true;
+	tempTag->parent=curt;
+	if(curt!=NULL)curt->children.push_back(tempTag);
+	else head=tempTag;
+	curt=tempTag;
+
+	//parse for content and sub-tags now
+	bool isEndTag=false;
+	while(!isEndTag){
+		curt->content.push_back(parseForContentUntilNextTag());
+		isEndTag = parseHTML_recursive();
+	}
+	if(curt!=NULL)curt=curt->parent;
+	return false;
+}
+
 string GlopHTML_consumer::getNextTagToken(){
 	int start = html.find("<",position);
 	if(start == string::npos) return "";
@@ -263,6 +319,7 @@ string GlopHTML_consumer::getNextTagToken(){
 	position=end;
 	return tag;
 }
+
 TAG* GlopHTML_consumer::parseTagToken(string tag){
 	if(tag == "") return NULL;
 	TAG* temp = new TAG;
@@ -300,6 +357,16 @@ TAG* GlopHTML_consumer::parseTagToken(string tag){
 		curt++; // skip the quote mark
 		temp->params[key]=value;
 	}
+	if(temp->params.count("class")>0){
+		temp->classname = temp->params["class"];
+		temp->params.erase("class");
+		classes[temp->classname].push_back(temp);
+	}
+	if(temp->params.count("id")>0){
+		temp->id = temp->params["id"];
+		temp->params.erase("id");
+		ids[temp->id]=temp;
+	}
 	return temp;
 }
 
@@ -307,6 +374,7 @@ string GlopHTML_consumer::parseForContentUntilNextTag(){
 	if(html[position]=='>') position++; // make sure we are past the end of the tag
 	if(html[position]=='<') return "";
 	int end = html.find('<',position);
+	if(end==string::npos)end=html.length();
 	string segment=html.substr(position,end-position);
 	position = end;
 	return segment;

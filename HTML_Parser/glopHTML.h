@@ -29,7 +29,6 @@ class GlopHTML_consumer;
 
 class GlopHTML{
 public:
-public:
 	GlopHTML();
 
 	void parseHTML(string html);
@@ -73,8 +72,8 @@ public:
 	void moveToFirstClass(std::string classname);
 	void moveToNextClass(std::string classname);
 	void moveToId(std::string id);
-	void goToCurrentChild(int childNumber); //index value of the child in the current tag
-	void goToParent(); // move to the parent of the current node
+	void moveToCurrentChild(int childNumber); //index value of the child in the current tag
+	void moveToParent(); // move to the parent of the current node
 
 protected:
 	void deleteCurrentTag(TAG*);
@@ -92,15 +91,20 @@ protected:
 class GlopHTML_consumer{
 public:
 	TAG *head,*curt;
+	map<string,TAG*> ids; // pointer to tags via their id
+	map<string,vector<TAG*> > classes; // pointer to tags via their classname
 	string html;
 	int position;
 	string getNextTagToken();
 	TAG* parseTagToken(string);
 	string parseForContentUntilNextTag();
+	bool parseHTML_recursive();
 	
 	GlopHTML_consumer();
 	void parseHTML(string);
 	TAG* getHead();
+	map<string,TAG*> getIds();
+	map<string,vector<TAG*> > getClasses();
 };
 
 #endif
