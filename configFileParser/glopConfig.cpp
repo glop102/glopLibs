@@ -147,6 +147,7 @@ void ParseFile_Recurse(FILE* fd, Settings& settings,int& lineCount){
 
 Settings ParseFile(std::string filename){
 	Settings settings;
+	#pragma warning(suppress : 4996)
 	FILE* fd = fopen(filename.c_str(),"r");
 	if(fd == NULL)
 		return settings;
@@ -178,6 +179,7 @@ void SaveToFile_Recurse(FILE* fd, Settings& s,std::string prefix){
 }
 
 void SaveToFile(std::string filename,Settings& settings){
+	#pragma warning(suppress : 4996)
 	FILE* fd = fopen(filename.c_str(),"w");
 	if(fd == NULL)
 		return; // couldn't open file
@@ -186,6 +188,90 @@ void SaveToFile(std::string filename,Settings& settings){
 	SaveToFile_Recurse(fd,settings,"");
 
 	fclose(fd);
+}
+
+double Settings::getValueAsDouble(std::string s , double def){
+	if(s.size()==0)
+		return def;
+	if(this->values.count(s)==0)
+		return def;
+	double left=0;
+	double right=0;
+	s = this->values.at(s);
+	bool neg=false;
+
+	int x=0;
+	while(s[x] == ' ' || s[x] == '\n') x++; // skip whitespace
+	if( s[x] == '-' ){
+		neg = true;
+		x++;
+	}
+	if( !(s[x]<='9' && s[x]>='0') )
+		return def; // not a number so just give the default
+
+	while(x<s.length() && s[x]<='9' && s[x]>='0'){//get the chars to the left of the point
+		left *= 10;
+		left += s[x]-'0';
+		x++;
+	}
+
+	if(s[x]!='.'){ // was not a decimal point so simply return what he have
+		return neg ? -1.0*left : left;
+	}else x++;
+
+	double position=1;
+	while(x<s.length() && s[x]<='9' && s[x]>='0'){//get the chars to the right of the point
+		position /= 10.0;
+		right += (s[x]-'0') * position;
+		x++;
+	}
+
+	return neg ? -1.0*(left+right) : left+right;
+}
+int Settings::getValueAsInt(std::string s , int def){
+	if(s.size()==0)
+		return def;
+	if(this->values.count(s)==0)
+		return def;
+	int val=0;
+	s = this->values.at(s);
+	bool neg=false;
+
+	int x=0;
+	while(s[x] == ' ' || s[x] == '\n') x++; // skip whitespace
+	if( s[x] == '-' ){
+		neg = true;
+		x++;
+	}
+	if( !(s[x]<='9' && s[x]>='0') )
+		return def; // not a number so just give the default
+
+	while(x<s.length() && s[x]<='9' && s[x]>='0'){
+		val *= 10;
+		val += s[x]-'0';
+		x++;
+	}
+	return neg ? -1*val : val;
+}
+std::string Settings::getValueAsString(std::string s, std::string def){
+	if(s.size()==0)
+		return def;
+	if(this->values.count(s)==0)
+		return def;
+	return this->values.at(s);
+}
+bool Settings::getValueAsBool(std::string s, bool def){
+	if(s.size()==0)
+		return def;
+	if(this->values.count(s)==0)
+		return def;
+
+	std::string ss = this->values.at(s);
+	std::transform(ss.begin(), ss.end(), ss.begin(), ::tolower);
+	if(ss=="true")
+		return true;
+	else
+		return false;
 }
 
 }; // namespace ConfigParser

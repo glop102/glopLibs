@@ -85,9 +85,6 @@ protected:
 	TAG* currentNode;
 };
 
-//Helper class for the main html class
-//it is meant to eat one char at a time
-//and then slowly fill out the tree
 class GlopHTML_consumer{
 public:
 	TAG *head,*curt;
